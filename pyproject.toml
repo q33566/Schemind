@@ -3,11 +3,30 @@ name = "proacagent"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
+    "browser-use>=0.1.41",
     "chromadb>=0.6.3",
     "google-genai>=1.5.0",
+    "ipywidgets>=8.1.6",
+    "langchain-chroma>=0.2.2",
+    "langchain-google-genai>=2.1.2",
+    "langchain-ollama>=0.3.0",
+    "langgraph>=0.3.34",
+    "markitdown[all]>=0.0.2",
+    "openai>=1.68.2",
+    "patchright>=1.51.3",
+    "pillow==10.1.0",
+    "python-dotenv>=1.0.1",
+    "python-pptx>=1.0.2",
+    "rich>=13.9.4",
+    "selenium==4.15.2",
+    "tqdm>=4.67.1",
+]
+
+[dependency-groups]
+dev = [
     "ipykernel>=6.29.5",
     "pytest>=8.3.5",
-    "watchdog>=6.0.0",
+    "ruff>=0.9.10",
 ]

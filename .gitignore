@@ -6,11 +6,12 @@ dist/
 wheels/
 *.egg-info
 .pytest_cache/
-
+.ruff_cache/
+data/
 # Virtual environments
 .venv
 .env
 
 mock_filesystem/
-tmp.ipynb
+dev.ipynb
 chroma/
