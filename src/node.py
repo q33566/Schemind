@@ -3,7 +3,13 @@ from schemas import FileSnapshot
 from pathlib import Path
 from tqdm import tqdm
 from typing import List, Dict, Tuple
-from llm_services import FileDescriptor, FileRetrieverLLMService, BrowserUseLLMService, DispatcherLLMService
+from llm_services import (
+    FileDescriptor,
+    FileRetrieverLLMService,
+    BrowserUseLLMService,
+    DispatcherLLMService,
+    WebGuiderLLMService,
+)
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
@@ -32,7 +38,9 @@ class Synchronizer(BaseService):
         super().__init__(name=self.__class__.__name__)
         self._observed_directory: str = observed_directory
         self._vectorstore: Chroma = vectorstore
-        self._file_descriptor: FileDescriptor = FileDescriptor(llm=llm, max_content_length=max_content_length)
+        self._file_descriptor: FileDescriptor = FileDescriptor(
+            llm=llm, max_content_length=max_content_length
+        )
 
     def _get_last_modified_time(self, file: Path) -> int:
         """Get the last modified time of a file."""
@@ -169,6 +177,7 @@ class Synchronizer(BaseService):
             self._vectorstore.add_documents(documents)
         return
 
+
 class FileRetriever(BaseService):
     def __init__(
         self,
@@ -191,6 +200,7 @@ class FileRetriever(BaseService):
         result: str = self._file_ranker.run(user_query=query, retriever=self._retriever)
         return {"retrieved_file_path": result}
 
+
 class BrowserUse(BaseService):
     def __init__(self, llm: BaseChatModel, planner_llm: BaseChatModel = None):
         super().__init__(name=self.__class__.__name__)
@@ -198,29 +208,54 @@ class BrowserUse(BaseService):
             llm=llm,
             planner_llm=planner_llm,
         )
-    
+
     async def run(self, state: State) -> None:
         user_query = state["user_query"]
-        await self._browser_use_llm_service.run(user_query=user_query)
+        await self._browser_use_llm_service.run(user_query=user_query, state=state)
+
 
 class Dispatcher(BaseService):
-    def __init__(self, llm: BaseChatModel  = None):
+    def __init__(self, llm: BaseChatModel = None):
         super().__init__(name=self.__class__.__name__)
         self._llm_service: DispatcherLLMService = DispatcherLLMService(
             llm=llm,
-        )     
-    
+        )
+
     def branch(self, state: State) -> str:
         if state["task_classification"] == "file":
             return FileRetriever.__name__
         elif state["task_classification"] == "web":
-            return BrowserUse.__name__
+            return WebGuider.__name__
         elif state["task_classification"] == "web_record":
             return BrowserUse.__name__
         else:
             raise ValueError("Invalid task classification.")
-    
+
     def run(self, state: State):
         user_query = state["user_query"]
         task: str = self._llm_service.run(user_query=user_query)
         return {"task_classification": task}
+
+
+class WebGuider(BaseService):
+    def __init__(
+        self,
+        vectorstore: Chroma,
+        llm: BaseChatModel,
+        serch_type: str = "similarity",
+        k: int = 2,
+    ):
+        super().__init__(name=self.__class__.__name__)
+        self._web_guider_llm_service: WebGuiderLLMService = WebGuiderLLMService(
+            llm=llm,
+        )
+        self._retriever = vectorstore.as_retriever(
+            search_type=serch_type, search_kwargs={"k": k}
+        )
+
+    def run(self, state: State) -> str:
+        user_query = state["user_query"]
+        result: str = self._web_guider_llm_service.run(
+            user_query=user_query, retriever=self._retriever
+        )
+        return {"web_manual": result}

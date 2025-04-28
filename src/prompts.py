@@ -59,6 +59,8 @@ class FileRetrieverLLMServicePrompt:
         [("system", _system_prompt), ("user", _user_prompt)]
     )
 
+
+@dataclass
 class DispatcherPrompt:
     _system_prompt: str = dedent(
         """
@@ -85,6 +87,29 @@ class DispatcherPrompt:
         """
         User Task Description:
         {user_task_description}
+        """
+    ).strip()
+
+    prompt_template = ChatPromptTemplate(
+        [("system", _system_prompt), ("user", _user_prompt)]
+    )
+
+
+@dataclass
+class WebManualLLMServicePrompt:
+    _system_prompt: str = dedent(
+        """
+    You are a web manual assistant. Your task is to provide clear and actionable 
+    user instructions based on the content of the website manual. 
+    The instructions should summarize how to operate or use the system effectively.
+    """
+    ).strip()
+
+    _user_prompt: str = dedent(
+        """
+        使用者任務：{user_query}
+        相關操作手冊:{context}
+        請問該如何進行？有什麼需要注意的規則？請詳細說明操作順序，告訴我目前畫面該怎麼操作。
         """
     ).strip()
 

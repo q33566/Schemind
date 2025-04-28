@@ -1,7 +1,12 @@
 from langchain_core.language_models.chat_models import BaseChatModel
 from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
-from prompts import FileDescriptorPrompt, FileRetrieverLLMServicePrompt, DispatcherPrompt
+from prompts import (
+    FileDescriptorPrompt,
+    FileRetrieverLLMServicePrompt,
+    DispatcherPrompt,
+    WebManualLLMServicePrompt,
+)
 from markitdown import MarkItDown
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.vectorstores import VectorStoreRetriever
@@ -13,9 +18,13 @@ from browser_use import Agent
 from browser_use.browser.browser import Browser, BrowserConfig
 from browser_use.browser.context import BrowserContextConfig
 
+
 class BaseLLMService(ABC):
     def __init__(
-        self, llm: BaseChatModel, base_model: Optional[BaseModel] = None, name: str = None
+        self,
+        llm: BaseChatModel,
+        base_model: Optional[BaseModel] = None,
+        name: str = None,
     ):
         if base_model is None:
             self._llm = llm
@@ -26,6 +35,7 @@ class BaseLLMService(ABC):
     @abstractmethod
     def run(self, *args, **kwargs):
         pass
+
 
 class FileDescriptor(BaseLLMService):
     class OutputFormat(BaseModel):
@@ -77,6 +87,7 @@ class FileDescriptor(BaseLLMService):
         )
         return result.content
 
+
 class FileRetrieverLLMService(BaseLLMService):
     class OutputFormat(BaseModel):
         file_path: str = Field(
@@ -96,11 +107,7 @@ class FileRetrieverLLMService(BaseLLMService):
         )
 
     def __init__(self, llm: BaseChatModel):
-        super().__init__(
-            llm, 
-            self.OutputFormat, 
-            name=self.__class__.__name__
-            )
+        super().__init__(llm, self.OutputFormat, name=self.__class__.__name__)
         self._prompt: ChatPromptTemplate = FileRetrieverLLMServicePrompt.prompt_template
         self._chain = self._prompt | self._llm
 
@@ -112,56 +119,65 @@ class FileRetrieverLLMService(BaseLLMService):
         result: FileRetrieverLLMService.OutputFormat = chain.invoke(user_query)
         return result.file_path
 
+
 class BrowserUseLLMService(BaseLLMService):
     def __init__(self, llm: BaseChatModel, planner_llm: Optional[BaseChatModel] = None):
         super().__init__(llm, name=self.__class__.__name__)
         self._planner_llm: Optional[BaseChatModel] = planner_llm
         self._browser = Browser(
             config=BrowserConfig(
-                new_context_config=BrowserContextConfig(save_downloads_path=r"..\data\mock_filesystem"),
+                new_context_config=BrowserContextConfig(
+                    save_downloads_path=r"..\data\mock_filesystem"
+                ),
             )
         )
-    async def run(self, user_query: str) -> str:
+
+    async def run(self, state, user_query: str) -> str:
         """Run the browser agent with the given task."""
         agent = Agent(
             task=user_query,
             llm=self._llm,
             use_vision=True,
             planner_llm=self._planner_llm,
-            planner_interval=4,    
+            planner_interval=4,
             max_actions_per_step=8,
-            use_vision_for_planner=False, 
+            use_vision_for_planner=False,
             save_conversation_path=r"..\data\logs\browser_use_conversation",
             browser=self._browser,
+            extend_system_message=state["web_manual"],
         )
         result = await agent.run(max_steps=25)
-        
-class DispatcherLLMService(BaseLLMService):
 
+
+class DispatcherLLMService(BaseLLMService):
     class OutputFormat(BaseModel):
         is_web_task: bool = Field(
             ...,
             title="Is Web Task",
-            description="True if the task requires the agent itself to operate a web browser to complete the task, such as clicking links, filling forms, scraping data, or downloading files from websites."
+            description="True if the task requires the agent itself to operate a web browser to complete the task, such as clicking links, filling forms, scraping data, or downloading files from websites.",
         )
         is_filesystem_task: bool = Field(
             ...,
             title="Is Filesystem Task",
-            description="True if the task involves managing the local filesystem, including creating, copying, deleting, or listing files and directories."
+            description="True if the task involves managing the local filesystem, including creating, copying, deleting, or listing files and directories.",
         )
         is_web_record_task: bool = Field(
             ...,
             title="Is Web Record Task",
-            description="True if the user must personally operate the web browser to demonstrate how a task is performed, so the agent can learn from the recording for future automation."
+            description="True if the user must personally operate the web browser to demonstrate how a task is performed, so the agent can learn from the recording for future automation.",
         )
 
     def __init__(self, llm: BaseChatModel):
-        super().__init__(llm, name=self.__class__.__name__, base_model=self.OutputFormat)
+        super().__init__(
+            llm, name=self.__class__.__name__, base_model=self.OutputFormat
+        )
         self._prompt: ChatPromptTemplate = DispatcherPrompt.prompt_template
         self._chain = self._prompt | self._llm
-        
+
     def run(self, user_query: str) -> str:
-        result: DispatcherLLMService.OutputFormat = self._chain.invoke({"user_task_description": user_query})
+        result: DispatcherLLMService.OutputFormat = self._chain.invoke(
+            {"user_task_description": user_query}
+        )
         if result.is_web_task:
             return "web"
         elif result.is_filesystem_task:
@@ -169,3 +185,25 @@ class DispatcherLLMService(BaseLLMService):
         elif result.is_web_record_task:
             return "web_record"
         return "unknown"
+
+
+class WebGuiderLLMService(BaseLLMService):
+    class OutputFormat(BaseModel):
+        content: str = Field(
+            ...,
+            title="User Instructions",
+            description="Clear and actionable user instructions derived from the website manual, summarizing how to operate or use the system effectively.",
+        )
+
+    def __init__(self, llm: BaseChatModel):
+        super().__init__(llm, self.OutputFormat, name=self.__class__.__name__)
+        self._prompt: ChatPromptTemplate = WebManualLLMServicePrompt.prompt_template
+        self._chain = self._prompt | self._llm
+
+    def run(self, user_query: str, retriever: VectorStoreRetriever) -> str:
+        chain = {
+            "context": retriever,
+            "user_query": RunnablePassthrough(),
+        } | self._chain
+        result: WebGuiderLLMService.OutputFormat = chain.invoke(user_query)
+        return result.content
