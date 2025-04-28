@@ -1,5 +1,5 @@
 import asyncio
-from node import Synchronizer, FileRetriever, BrowserUse, Dispatcher
+from node import Synchronizer, FileRetriever, BrowserUse, Dispatcher, WebGuider
 from schemas import State
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_chroma import Chroma
@@ -12,6 +12,11 @@ vectorstore = Chroma(
     collection_name="filesystem_manager",
     embedding_function=embeddings,
     persist_directory="../data/filesystem_manager_db",
+)
+vectorstore_web_manual = Chroma(
+    collection_name="web_user_manual",
+    embedding_function=embeddings,
+    persist_directory="../data/web_user_manual_db",
 )
 llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
 
@@ -31,28 +36,36 @@ dispatcher: Dispatcher = Dispatcher(llm=llm)
 browser_use: BrowserUse = BrowserUse(
     llm=llm,
 )
-    
+
+webguider: WebGuider = WebGuider(vectorstore=vectorstore_web_manual, llm=llm, k=2)
+
 graph_builder = StateGraph(State)
 graph_builder.add_node(synchronizer.name, synchronizer.run)
 graph_builder.add_node(file_retriever.name, file_retriever.run)
 graph_builder.add_node(browser_use.name, browser_use.run)
 graph_builder.add_node(dispatcher.name, dispatcher.run)
+graph_builder.add_node(webguider.name, webguider.run)
 graph_builder.add_edge(START, dispatcher.name)
 graph_builder.add_conditional_edges(
-    dispatcher.name, 
-    path=dispatcher.branch, 
-    path_map=[browser_use.name, synchronizer.name]
+    dispatcher.name,
+    path=dispatcher.branch,
+    path_map=[webguider.name, synchronizer.name],
 )
 graph_builder.add_edge(synchronizer.name, file_retriever.name)
 graph_builder.add_edge(file_retriever.name, END)
+graph_builder.add_edge(webguider.name, browser_use.name)
 graph_builder.add_edge(browser_use.name, END)
 graph = graph_builder.compile()
 
+
 async def main():
-    output = await graph.ainvoke({
-    "user_query": "去中央大學計算機中心網站下載email申請單，下載完才能結束",
-    })
+    output = await graph.ainvoke(
+        {
+            "user_query": "去中央大學計算機中心網站下載email申請單，下載完才能結束",
+        }
+    )
     print(output)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

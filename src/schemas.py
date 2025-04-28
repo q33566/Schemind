@@ -14,6 +14,7 @@ class State(TypedDict):
     retrieved_file_path: str
     user_query: str
     task_classification: Literal["file", "web", "web_record"]
+    web_manual: str
 
 
 class FileSnapshot(BaseModel):
@@ -57,9 +58,6 @@ class GeneratedDescription(BaseModel):
         title="Last Modified Time",
         description="The last modified time of the file.",
     )
-
-
-
 
 
 class WebvoyagerInputFormatterResponse(BaseModel):
