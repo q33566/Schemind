@@ -18,7 +18,9 @@ vectorstore_web_manual = Chroma(
     embedding_function=embeddings,
     persist_directory="../data/web_user_manual_db",
 )
-llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
+# llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
+# 好像gemini-2.0-flash要錢？
+llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0)
 
 synchronizer: Synchronizer = Synchronizer(
     observed_directory="../data/mock_filesystem",
