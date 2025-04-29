@@ -6,8 +6,6 @@ from pathlib import Path
 import json
 import os
 
-os.environ["OPENAI_API_KEY"] ="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"
-
 # 資料夾設定
 pdf_data_folder = Path("../data/pdf_data")
 web_data_folder = Path("../data/web_data")
