@@ -3,6 +3,7 @@ from typing import List, Optional
 from typing import Annotated
 from typing_extensions import TypedDict
 from langgraph.graph.message import add_messages
+from typing import Literal
 
 
 class State(TypedDict):
@@ -11,6 +12,9 @@ class State(TypedDict):
     # (in this case, it appends messages to the list, rather than overwriting them)
     messages: Annotated[list, add_messages]
     retrieved_file_path: str
+    user_query: str
+    task_classification: Literal["file", "web", "web_record"]
+    web_manual: str
 
 
 class FileSnapshot(BaseModel):
@@ -53,19 +57,6 @@ class GeneratedDescription(BaseModel):
         ...,
         title="Last Modified Time",
         description="The last modified time of the file.",
-    )
-
-
-class DispatcherResponse(BaseModel):
-    is_webvoyager: bool = Field(
-        ...,
-        title="Is WebVoyager Task",
-        description="Set to true if the task involves interacting with websites, such as clicking, filling forms, or downloading from the internet.",
-    )
-    is_filesystem_manager: bool = Field(
-        ...,
-        title="Is Filesystem Manager Task",
-        description="Set to true if the task involves managing local files, such as copying, deleting, or listing files or folders.",
     )
 
 
