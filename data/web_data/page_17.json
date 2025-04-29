@@ -1,0 +1,38 @@
+[
+  {
+    "feature": {
+      "title": "網路服務",
+      "description": "提供多種網路服務選項，以滿足用戶的不同需求，包括安全的網路連接和資料保護。"
+    }
+  },
+  {
+    "feature": {
+      "title": "VPN",
+      "description": "使用虛擬私人網路 (VPN) 來保護用戶的上網隱私和安全。用戶可以選擇不同的連接模式，以便在公共網路環境中確保數據的安全性和隱私。"
+    }
+  },
+  {
+    "feature": {
+      "title": "字體大小調整",
+      "description": "用戶可以根據個人喜好調整網頁的字體大小，選擇小、中、大三種字體尺寸，以改善可讀性。"
+    }
+  },
+  {
+    "feature": {
+      "title": "JavaScript 支援提醒",
+      "description": "提醒用戶其瀏覽器未啟用 JavaScript 功能，並提供建議以確保網頁功能可以正常使用。若網頁功能無法正常使用，請開啟瀏覽器中的 JavaScript 設定。"
+    }
+  },
+  {
+    "feature": {
+      "title": "SSLVPN 服務啟用",
+      "description": "即日起開始提供 SSLVPN 服務，用於安全的網路連接。用戶可透過此服務進行安全的遠端訪問。"
+    }
+  },
+  {
+    "feature": {
+      "title": "SSLVPN 使用手冊",
+      "description": "提供 SSLVPN 使用手冊，包含繁體中文及英文版本，協助用戶瞭解如何有效使用 SSLVPN 服務。"
+    }
+  }
+]

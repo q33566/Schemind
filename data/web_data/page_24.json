@@ -1,0 +1,20 @@
+[
+  {
+    "feature": {
+      "title": "Proxy Server 功能",
+      "description": "透過 HTTP Proxy Server 的 Cache 功能，使用者可以減少 www client 端直接連往 www server 的頻率。這樣的設計不僅能降低網路流量，還能加快 client 端擷取資料的速度。使用中央大學提供的 Proxy Server，可以訪問的 URL 為 proxy.ncu.edu.tw，端口號為 3128。"
+    }
+  },
+  {
+    "feature": {
+      "title": "字體大小調整",
+      "description": "使用者可以根據自己的需求調整網頁的字體大小，以提升可讀性。可選擇小、中、大三種字體大小的選項，方便用戶根據個人喜好進行設定。"
+    }
+  },
+  {
+    "feature": {
+      "title": "JavaScript 啟用提示",
+      "description": "若使用者的瀏覽器不支援 JavaScript 功能，系統將顯示提示信息，告知用戶在網頁功能無法正常使用的情況下，需要啟用瀏覽器的 JavaScript 狀態，以確保網頁能正確運行。"
+    }
+  }
+]
