@@ -1,0 +1,32 @@
+[
+  {
+    "feature": {
+      "title": "Google Workspace for Education 帳號申請",
+      "description": "本功能提供教職員生申請 Google Workspace for Education 帳號的頁面，以利用 Google Applications 所提供的各種資源。使用者可透過該頁面進行帳號申請，並如有任何疑問可透過 ncucc@cc.ncu.edu.tw 聯絡本中心獲取協助。在申請帳號時，請詳讀並遵守『國立中央大學 Google Workspace 服務申請同意書』及 Google Applications 相關使用規範。"
+    }
+  },
+  {
+    "feature": {
+      "title": "帳號移轉教學",
+      "description": "本功能提供使用者 Gsuite 帳戶移轉的相關教學文件。使用者可參考這些文件以進行帳號的移轉，確保帳號資訊的完整性及無縫轉移。"
+    }
+  },
+  {
+    "feature": {
+      "title": "加購空間作業流程",
+      "description": "使用者可選擇透過本功能加購 Google Workspace 的儲存空間。加購流程如下：首先，提供 g.ncu 帳號、姓名、單位、職稱、電話、email 以及申請需求，並寄件至 Angus-KS_Hsu@syscom.com.tw 和 ncucc@cc.ncu.edu.tw。申請者需填寫加購申請表，電算中心將審核並確認有效訂單後，凌群業務會提供使用者報價單（會註明開通日期）。使用者需確認報價單後回覆凌群完成訂單。最終，中大將設定加購者的儲存空間並進行報帳程序。"
+    }
+  },
+  {
+    "feature": {
+      "title": "加購費用及容量選項",
+      "description": "使用者可根據需求選擇不同的儲存空間容量及相應的價格。當前加購空間的容量及價格如下：1TB 每年 US$112，5TB 每年 US$560，10TB 每年 US$1120。在使用者加購此空間時，仍需根據實際的使用期限計算報價，此價格因加購的時程而有所變動，同時也需注意早期加購的設定。"
+    }
+  },
+  {
+    "feature": {
+      "title": "容量超過上限通知",
+      "description": "提供關於中央大學 Google Workspace for Education 帳號容量超過上限的相關公告，包括校友版及教職員生版的通知。這些通知將提醒使用者儘早調整其帳號的存儲設置，避免因超過容量導致帳號被暫時停用。"
+    }
+  }
+]

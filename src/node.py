@@ -10,6 +10,7 @@ from llm_services import (
     DispatcherLLMService,
     WebGuiderLLMService,
 )
+from user_action_recorder_service import run_recorder
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
@@ -222,12 +223,13 @@ class Dispatcher(BaseService):
         )
 
     def branch(self, state: State) -> str:
-        if state["task_classification"] == "file":
+        print("tast_classification:", state["task_classification"])
+        if state["task_classification"] == "filesystem":
             return FileRetriever.__name__
-        elif state["task_classification"] == "web":
-            return WebGuider.__name__
-        elif state["task_classification"] == "web_record":
-            return BrowserUse.__name__
+        # elif state["task_classification"] == "web":
+        #     return WebGuider.__name__
+        elif state["task_classification"] == "recorder":
+            return UserActionRecorder.__name__
         else:
             raise ValueError("Invalid task classification.")
 
@@ -259,3 +261,11 @@ class WebGuider(BaseService):
             user_query=user_query, retriever=self._retriever
         )
         return {"web_manual": result}
+    
+class UserActionRecorder(BaseService):
+    def __init__(self):
+        super().__init__(name=self.__class__.__name__)
+
+
+    def run(self, state: State) -> None:
+        run_recorder(state=state)

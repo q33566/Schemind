@@ -183,7 +183,7 @@ class DispatcherLLMService(BaseLLMService):
         elif result.is_filesystem_task:
             return "filesystem"
         elif result.is_web_record_task:
-            return "web_record"
+            return "recorder"
         return "unknown"
 
 

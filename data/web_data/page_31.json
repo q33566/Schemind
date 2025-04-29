@@ -1,0 +1,56 @@
+[
+  {
+    "feature": {
+      "title": "Font Size Adjustment",
+      "description": "Users can adjust the font size on the webpage to improve their reading experience. Options include Small, Middle, and Large sizes. To adjust the font size, select the desired option from the menu. Note that if JavaScript is not enabled in your browser, some webpage functionalities may not work correctly."
+    }
+  },
+  {
+    "feature": {
+      "title": "Introduction to Terminal Room",
+      "description": "The Terminal Room provides internet access through a dedicated space equipped with approximately 100 computers. This service is available to both internal and external members of NCU. The Terminal Room aims to facilitate effective use of internet resources for all users."
+    }
+  },
+  {
+    "feature": {
+      "title": "Terminal Room Services",
+      "description": "The Terminal Room services include access to about 100 computers running on Windows and Linux operating systems. Additionally, a trained part-time worker from the Computer Center is available at the service desk to assist with system and order management. For other official inquiries, users can approach the service desk for assistance."
+    }
+  },
+  {
+    "feature": {
+      "title": "Printing Services",
+      "description": "The Terminal Room offers printing services that include two black and white dot matrix printers and one color laser printer. Users can utilize these printers to print their documents during operating hours."
+    }
+  },
+  {
+    "feature": {
+      "title": "Scanning Services",
+      "description": "A plane scanner is available in the Terminal Room for users who need to scan documents. Users can access this service to digitize their physical documents as needed."
+    }
+  },
+  {
+    "feature": {
+      "title": "Location of Terminal Room",
+      "description": "The Terminal Room is located on the right side of Zhi-xi Hall's entrance at the first floor. It is identifiable by its glass windows and the array of computers inside. To find Zhi-xi Hall, enter from the main gate of NCU, turn right, go straight to the end, then turn left and continue straight until you see the orange building among the cabins."
+    }
+  },
+  {
+    "feature": {
+      "title": "Service Hours",
+      "description": "The Terminal Room operates during the semester from Monday to Friday between 08:00 and 22:00, with no service on weekends and holidays. During summer and winter vacations, operating hours are reduced to 08:00 to 17:00 on weekdays, with no service on weekends and holidays. Additionally, the Terminal Room will be closed on specific holidays such as Dragon Boat Festival, Mid-Autumn Festival, and Chinese New Year, along with other holidays as announced in the school calendar."
+    }
+  },
+  {
+    "feature": {
+      "title": "User Instructions",
+      "description": "Priority for computer usage is given to NCU's internal members in case of limited availability. Users are required to log in after powering on the computer by entering their account and password. NCU internal members may use their CC SPARC E-mail account for login, whereas external members need to present their ID card and register at the service desk to obtain their ID number before gaining computer access."
+    }
+  },
+  {
+    "feature": {
+      "title": "Terminal Room Regulations",
+      "description": "Users must adhere to several rules while using the Terminal Room: food and drinks are prohibited, video games cannot be played, P2P software is not allowed, and uploading or downloading of materials that infringe intellectual property rights or are inappropriate is forbidden. The primary purpose of the computers is for self-study and homework submission. Users are encouraged to avoid occupying computers for unrelated tasks, maintain cleanliness, and ensure chairs are returned to their proper positions before leaving."
+    }
+  }
+]
