@@ -1,5 +1,5 @@
 import asyncio
-from node import Synchronizer, FileRetriever, BrowserUse, Dispatcher, WebGuider, UserActionRecorder
+from node import Synchronizer, FileRetriever, BrowserUse, Dispatcher, WebGuider, UserActionRecorder, MessageSender
 from schemas import State
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_chroma import Chroma
@@ -36,7 +36,9 @@ dispatcher: Dispatcher = Dispatcher(llm=llm)
 browser_use: BrowserUse = BrowserUse(
     llm=llm,
 )
-
+messenge_sender: MessageSender = MessageSender(
+    llm=llm,
+)
 webguider: WebGuider = WebGuider(vectorstore=vectorstore_web_manual, llm=llm, k=2)
 recorder: UserActionRecorder = UserActionRecorder()
 graph_builder = StateGraph(State)
@@ -46,6 +48,8 @@ graph_builder.add_node(browser_use.name, browser_use.run)
 graph_builder.add_node(dispatcher.name, dispatcher.run)
 graph_builder.add_node(webguider.name, webguider.run)
 graph_builder.add_node(recorder.name, recorder.run)
+graph_builder.add_node(messenge_sender.name, messenge_sender.run)
+graph_builder.add_edge(file_retriever.name, messenge_sender.name)
 graph_builder.add_edge(START, dispatcher.name)
 graph_builder.add_conditional_edges(
     dispatcher.name,
@@ -53,7 +57,7 @@ graph_builder.add_conditional_edges(
     path_map=[webguider.name, synchronizer.name, recorder.name],
 )
 graph_builder.add_edge(synchronizer.name, file_retriever.name)
-graph_builder.add_edge(file_retriever.name, END)
+graph_builder.add_edge(messenge_sender.name, END)
 graph_builder.add_edge(webguider.name, browser_use.name)
 graph_builder.add_edge(browser_use.name, END)
 graph_builder.add_edge(recorder.name, END)
@@ -63,7 +67,7 @@ graph = graph_builder.compile()
 async def main():
     output = await graph.ainvoke(
         {
-            "user_query": "我要錄製找kaven durant網頁的過程",
+            "user_query": "幫我把電算中心email申請單傳給qaz571232@gmail.com",
         }
     )
     print(output)

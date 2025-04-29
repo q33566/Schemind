@@ -9,6 +9,7 @@ from llm_services import (
     BrowserUseLLMService,
     DispatcherLLMService,
     WebGuiderLLMService,
+    MessageSenderLLMService
 )
 from user_action_recorder_service import run_recorder
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -17,6 +18,7 @@ from langchain_core.embeddings import Embeddings
 from abc import ABC, abstractmethod
 from schemas import FileDescription
 from schemas import State
+from utils import send_email_with_attachment
 
 
 class BaseService(ABC):
@@ -197,7 +199,7 @@ class FileRetriever(BaseService):
 
     def run(self, state: State) -> str:
         """Retrieve files from the vector database based on the query."""
-        query = input("Enter your query: ")
+        query = state["user_query"]
         result: str = self._file_ranker.run(user_query=query, retriever=self._retriever)
         return {"retrieved_file_path": result}
 
@@ -225,7 +227,7 @@ class Dispatcher(BaseService):
     def branch(self, state: State) -> str:
         print("tast_classification:", state["task_classification"])
         if state["task_classification"] == "filesystem":
-            return FileRetriever.__name__
+            return Synchronizer.__name__
         # elif state["task_classification"] == "web":
         #     return WebGuider.__name__
         elif state["task_classification"] == "recorder":
@@ -269,3 +271,16 @@ class UserActionRecorder(BaseService):
 
     def run(self, state: State) -> None:
         run_recorder(state=state)
+        
+class MessageSender(BaseService):
+    def __init__(self, llm: BaseChatModel):
+        super().__init__(name=self.__class__.__name__)
+        self._llm_service: MessageSenderLLMService = MessageSenderLLMService(
+            llm=llm,
+        )
+
+    def run(self, state: State) -> None:
+        user_query: str = state["user_query"]
+        file_path: str = state["retrieved_file_path"] 
+        args: dict = self._llm_service.run(user_query=user_query, file_path=file_path)
+        send_email_with_attachment.invoke(args)

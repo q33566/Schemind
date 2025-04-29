@@ -1,11 +1,13 @@
 from langchain_core.language_models.chat_models import BaseChatModel
 from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
+from utils import send_email_with_attachment
 from prompts import (
     FileDescriptorPrompt,
     FileRetrieverLLMServicePrompt,
     DispatcherPrompt,
     WebManualLLMServicePrompt,
+    MessageSenderPrompt
 )
 from markitdown import MarkItDown
 from langchain_core.runnables import RunnablePassthrough
@@ -207,3 +209,23 @@ class WebGuiderLLMService(BaseLLMService):
         } | self._chain
         result: WebGuiderLLMService.OutputFormat = chain.invoke(user_query)
         return result.content
+
+class MessageSenderLLMService(BaseLLMService):
+    def __init__(self, llm: BaseChatModel):
+        super().__init__(llm, name=self.__class__.__name__)
+        self._prompt: ChatPromptTemplate = MessageSenderPrompt.prompt_template
+        self._tools = [send_email_with_attachment]
+        self._llm = self._llm.bind_tools(self._tools)
+        self._chain = self._prompt | self._llm
+        
+    def run(self, user_query, file_path) -> str:
+
+        result = self._chain.invoke(
+            {
+                "user_query": user_query,
+                "file_path": file_path,
+            }
+        )
+        args = result.tool_calls[0]["args"]
+        return args
+        
