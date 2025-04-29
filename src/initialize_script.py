@@ -4,12 +4,14 @@ from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 from pathlib import Path
 import json
+from dotenv import load_dotenv
 import os
+load_dotenv()
 
 # 資料夾設定
 pdf_data_folder = Path("../data/pdf_data")
 web_data_folder = Path("../data/web_data")
-output_vectorstore_dir = "../data/web_user_manual_db"
+output_vectorstore_dir: str = "../data/web_user_manual_db"
 
 # 確保資料夾存在
 for folder in [pdf_data_folder, web_data_folder]:
@@ -27,7 +29,7 @@ vectorstore = Chroma(
 )
 
 # 把兩個資料夾裡所有 JSON 檔都讀出來
-all_json_files = list(pdf_data_folder.glob("*.json")) + list(web_data_folder.glob("*.json"))
+all_json_files: list = list(pdf_data_folder.glob("*.json")) + list(web_data_folder.glob("*.json"))
 
 documents: list[Document] = []
 
@@ -58,7 +60,6 @@ for json_file in tqdm(all_json_files, desc="處理 JSON 檔案"):
     else:
         print(f"⚠️ {json_file.name} 內容不是 list，跳過")
 
-# 全部加進向量資料庫
 print(f"✅ 總共要加入 {len(documents)} 個 documents 進向量資料庫")
 vectorstore.add_documents(documents)
 print("🎯 所有資料已成功送入 Vectorstore！")
