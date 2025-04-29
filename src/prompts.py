@@ -163,3 +163,21 @@ class UserActionRecorderPrompt:
         Analyze only one action at a time. After responding, wait for the next action to be sent.
         """
     ).strip()
+    
+class MessageSenderPrompt:
+    _system_prompt: str = dedent(
+        """
+        You are a message sender assistant. Your task is to send a message according to the user's query.
+        """
+    ).strip()
+
+    _user_prompt: str = dedent(
+        """
+        query: {user_query}
+        file_path: {file_path}
+        """
+    ).strip()
+    
+    prompt_template = ChatPromptTemplate(
+        [("system", _system_prompt), ("user", _user_prompt)]
+    )
