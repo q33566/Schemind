@@ -4,17 +4,14 @@ import time
 import json
 import base64
 import logging
-
+from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
-
-from ARA_prompts import SYSTEM_PROMPT
-import google.generativeai as gemini
-from google.generativeai.types import GenerationConfig
+from prompts import UserActionRecorderPrompt
 
 # 設置log
-def setup_logger(folder_path):
+def setup_logger(folder_path: str):
     log_file_path = os.path.join(folder_path, 'agent.log')
 
     logger = logging.getLogger()
@@ -22,8 +19,6 @@ def setup_logger(folder_path):
         logger.removeHandler(handler)
         handler.close()
 
-    # 創建文件處理器 (FileHandler)，並設置其寫入文件的路徑
-    # 在這裡加上 encoding='utf-8' 來確保能處理中文字符
     handler = logging.FileHandler(log_file_path, mode='a', encoding='utf-8')
     formatter = logging.Formatter('%(levelname)s - %(message)s')
     handler.setFormatter(formatter)
@@ -648,205 +643,211 @@ def userInteractions_recording(start_web, json_recording, record_dir):
 # --------------------------------------------------------------------
 
 # Agent推斷操作背後的邏輯或原因 ----------------------------------------
-def encode_image(image_path):
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode('utf-8')
+# def encode_image(image_path):
+#     with open(image_path, "rb") as image_file:
+#         return base64.b64encode(image_file.read()).decode('utf-8')
 
-def clip_message_and_obs(messages:list):
-    clipped_messages = []
+# def clip_message_and_obs(messages:list):
+#     clipped_messages = []
 
-    # Always keep the system and initial task description
-    if len(messages) >= 2:
-        clipped_messages.append(messages[0])  # system
-        clipped_messages.append(messages[1])  # initial task message
+#     # Always keep the system and initial task description
+#     if len(messages) >= 2:
+#         clipped_messages.append(messages[0])  # system
+#         clipped_messages.append(messages[1])  # initial task message
 
-    # Traverse messages in order
-    for msg in messages[2:]:
-        if msg['role'] == 'assistant':
-            # Always keep assistant's replies
-            clipped_messages.append(msg)
-        elif msg['role'] == 'user':
-            # Check if this user message contains images
-            if messages.index(msg) == len(messages)-1 or len(msg['content']) == 1:
-                clipped_messages.append(msg)
-            else:
-                # Replace this message to text-only description (no images)
-                observation_text = msg['content'][0]['text']
-                clipped_msg = {
-                    'role': 'user',
-                    'content': [
-                        {'type': 'text', 'text': f"{observation_text}\n\nObservation screenshots are omitted to save space."},
-                    ]
-                }
-                clipped_messages.append(clipped_msg)
+#     # Traverse messages in order
+#     for msg in messages[2:]:
+#         if msg['role'] == 'assistant':
+#             # Always keep assistant's replies
+#             clipped_messages.append(msg)
+#         elif msg['role'] == 'user':
+#             # Check if this user message contains images
+#             if messages.index(msg) == len(messages)-1 or len(msg['content']) == 1:
+#                 clipped_messages.append(msg)
+#             else:
+#                 # Replace this message to text-only description (no images)
+#                 observation_text = msg['content'][0]['text']
+#                 clipped_msg = {
+#                     'role': 'user',
+#                     'content': [
+#                         {'type': 'text', 'text': f"{observation_text}\n\nObservation screenshots are omitted to save space."},
+#                     ]
+#                 }
+#                 clipped_messages.append(clipped_msg)
                 
-    return clipped_messages
+#     return clipped_messages
 
-def format_msg(it, step_text, before_imgb64, after_imgb64):
-    user_prompt = (
-        f"Now analyzing action step {it}:\n"
-        f"Action Description: \"{step_text}\"\n\n"
-        f"The following two screenshots are provided:\n"
-    )
-    if before_imgb64:
-        user_prompt += "1. The FIRST image is the screenshot BEFORE this action.\n"
-    else:
-        user_prompt += "1. Screenshot BEFORE the action is missing.\n"
-    if after_imgb64:
-        user_prompt += "2. The LAST image is the screenshot AFTER this action.\n\n"
-    else:
-        user_prompt += "2. Screenshot AFTER the action is missing.\n\n"
+# def format_msg(it, step_text, before_imgb64, after_imgb64):
+#     user_prompt = (
+#         f"Now analyzing action step {it}:\n"
+#         f"Action Description: \"{step_text}\"\n\n"
+#         f"The following two screenshots are provided:\n"
+#     )
+#     if before_imgb64:
+#         user_prompt += "1. The FIRST image is the screenshot BEFORE this action.\n"
+#     else:
+#         user_prompt += "1. Screenshot BEFORE the action is missing.\n"
+#     if after_imgb64:
+#         user_prompt += "2. The LAST image is the screenshot AFTER this action.\n\n"
+#     else:
+#         user_prompt += "2. Screenshot AFTER the action is missing.\n\n"
 
-    user_prompt += "Please carefully infer the reasoning and intention behind this step based on the available information."
+#     user_prompt += "Please carefully infer the reasoning and intention behind this step based on the available information."
 
-    curr_msg = {
-        'role': 'user',
-        'content': [
-            {'type': 'text', 'text': f"{user_prompt}"}
-        ]
-    }
-    if before_imgb64:
-        curr_msg['content'].append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{before_imgb64}"}})
-    if after_imgb64:
-        curr_msg['content'].append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{after_imgb64}"}})
-    return curr_msg
+#     curr_msg = {
+#         'role': 'user',
+#         'content': [
+#             {'type': 'text', 'text': f"{user_prompt}"}
+#         ]
+#     }
+#     if before_imgb64:
+#         curr_msg['content'].append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{before_imgb64}"}})
+#     if after_imgb64:
+#         curr_msg['content'].append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{after_imgb64}"}})
+#     return curr_msg
 
-def call_gemini_api(parameter, gemini_client, messages):
-    retry_times = 0
-    while retry_times < 10:
-        try:
-            logging.info('Calling Gemini API...')
-            print('Calling Gemini API...')
+# def call_gemini_api(gemini_client, messages):
+#     retry_times = 0
+#     while retry_times < 10:
+#         try:
+#             logging.info('Calling Gemini API...')
+#             print('Calling Gemini API...')
 
-            contents = []
-            for msg in messages:
-                parts = []
-                role =  msg['role'] if msg['role']!='system' else 'user'
-                if isinstance(msg['content'], str):
-                    parts.append({"text": msg['content']})
-                elif isinstance(msg['content'], list):
-                    for item in msg['content']:
-                        if item['type'] == 'text':
-                            parts.append({"text": item['text']})
-                        elif item['type'] == 'image_url':
-                            image_url = item['image_url']['url']
-                            base64_data = image_url.split("data:image/png;base64,")[1]
-                            parts.append({
-                                "inline_data": {
-                                    "mime_type": "image/png",
-                                    "data": base64_data
-                                }
-                            })
+#             contents = []
+#             for msg in messages:
+#                 parts = []
+#                 role =  msg['role'] if msg['role']!='system' else 'user'
+#                 if isinstance(msg['content'], str):
+#                     parts.append({"text": msg['content']})
+#                 elif isinstance(msg['content'], list):
+#                     for item in msg['content']:
+#                         if item['type'] == 'text':
+#                             parts.append({"text": item['text']})
+#                         elif item['type'] == 'image_url':
+#                             image_url = item['image_url']['url']
+#                             base64_data = image_url.split("data:image/png;base64,")[1]
+#                             parts.append({
+#                                 "inline_data": {
+#                                     "mime_type": "image/png",
+#                                     "data": base64_data
+#                                 }
+#                             })
 
-                contents.append({
-                    "role": role,
-                    "parts": parts
-                })
+#                 contents.append({
+#                     "role": role,
+#                     "parts": parts
+#                 })
 
-            # 呼叫 Gemini API
-            gemini_response = gemini_client.generate_content(
-                contents=contents,
-                generation_config=GenerationConfig(
-                    max_output_tokens=1000,
-                    temperature=parameter["temperature"]
-                )
-            )
-            return False, gemini_response.text
+#             # 呼叫 Gemini API
+#             gemini_response = gemini_client.generate_content(
+#                 contents=contents,
+#                 generation_config=GenerationConfig(
+#                     max_output_tokens=1000,
+#                     temperature=1
+#                 )
+#             )
+#             return False, gemini_response.text
 
-        except Exception as e:
-            logging.info(f'Error occurred, retrying. Error type: {type(e).__name__}')
+#         except Exception as e:
+#             logging.info(f'Error occurred, retrying. Error type: {type(e).__name__}')
 
-            if type(e).__name__ == 'RateLimitError':
-                time.sleep(10)
-            elif type(e).__name__ == 'APIError':
-                time.sleep(15)
-            elif type(e).__name__ == 'InvalidRequestError':
-                return True, None
-            else:
-                return True, None
+#             if type(e).__name__ == 'RateLimitError':
+#                 time.sleep(10)
+#             elif type(e).__name__ == 'APIError':
+#                 time.sleep(15)
+#             elif type(e).__name__ == 'InvalidRequestError':
+#                 return True, None
+#             else:
+#                 return True, None
 
-        retry_times += 1
-        if retry_times == 10:
-            logging.info('Retrying too many times')
-            return True, None
+#         retry_times += 1
+#         if retry_times == 10:
+#             logging.info('Retrying too many times')
+#             return True, None
 
-def ActionReasoning_Agent_thinking(record_dir, parameter):
-    logging.info(f'########## ARA start action reasoning ##########')
 
-    # 建立 API 客戶端
-    gemini.configure(api_key=parameter["api_key"])
-    client = gemini.GenerativeModel(parameter["api_model"])
+# # def ActionReasoning_Agent_thinking(record_dir):
+#     logging.info(f'########## ARA start action reasoning ##########')
 
-    # 讀取 user interaction 紀錄
-    recording_path = os.path.join(record_dir, "Interactions_recording.json")
-    with open(recording_path, 'r', encoding='utf-8') as f:
-        json_recording = json.load(f)
-    steps = json_recording['userInteraction_recording']
+#     # 建立 API 客戶端
+#     gemini.configure(api_key=os.getenv("GEMINI_API_KEY"))
+#     client = gemini.GenerativeModel("gemini-2.0-flash")
 
-    # 找到截圖資料夾
-    screenshot_dir = os.path.join(record_dir, "screenshot_recording")
+#     # 讀取 user interaction 紀錄
+#     recording_path = os.path.join(record_dir, "Interactions_recording.json")
+#     with open(recording_path, 'r', encoding='utf-8') as f:
+#         json_recording = json.load(f)
+#     steps = json_recording['userInteraction_recording']
 
-    # 初始化對話記錄與提示詞
-    messages = [{'role': 'system', 'content': SYSTEM_PROMPT}]
-    init_message = {
-        'role': 'user',
-        'content': f"The Task Goal is: \"{json_recording['task_question']}\".\n"
-                   f"You will receive each operation step one by one for reasoning how each operation to finally finish this task.\n"
-                   f"Please infer the reasoning behind each step based on the action description and the before/after screenshots."
-    }
-    messages.append(init_message)
+#     # 找到截圖資料夾
+#     screenshot_dir = os.path.join(record_dir, "screenshot_recording")
 
-    # 開始逐步處理
-    i = 0
-    pattern = r'Reasoning:'
-    while True:
-        step_info = steps[i]
-        step_text = step_info['Actual_Interaction']
-        current_img_path = os.path.join(screenshot_dir, f"screenshot_{i}.png")
-        next_img_path = os.path.join(screenshot_dir, f"screenshot_{i+1}.png")
+#     # 初始化對話記錄與提示詞
+#     messages = [{'role': 'system', 'content': UserActionRecorderPrompt.system_prompt}]
+#     init_message = {
+#         'role': 'user',
+#         'content': f"The Task Goal is: \"{json_recording['task_question']}\".\n"
+#                    f"You will receive each operation step one by one for reasoning how each operation to finally finish this task.\n"
+#                    f"Please infer the reasoning behind each step based on the action description and the before/after screenshots."
+#     }
+#     messages.append(init_message)
 
-        # 讀取並轉成 base64
-        img_b64_current = encode_image(current_img_path) if os.path.exists(current_img_path) else None
-        img_b64_next = encode_image(next_img_path) if os.path.exists(next_img_path) else None
+#     # 開始逐步處理
+#     i = 0
+#     pattern = r'Reasoning:'
+#     while True:
+#         step_info = steps[i]
+#         step_text = step_info['Actual_Interaction']
+#         current_img_path = os.path.join(screenshot_dir, f"screenshot_{i}.png")
+#         next_img_path = os.path.join(screenshot_dir, f"screenshot_{i+1}.png")
 
-        # 把這次的 user 提示加到 messages
-        messages.append(format_msg(i, step_text, img_b64_current, img_b64_next))
+#         # 讀取並轉成 base64
+#         img_b64_current = encode_image(current_img_path) if os.path.exists(current_img_path) else None
+#         img_b64_next = encode_image(next_img_path) if os.path.exists(next_img_path) else None
 
-        # 控制 messages 長度
-        messages = clip_message_and_obs(messages)
+#         # 把這次的 user 提示加到 messages
+#         messages.append(format_msg(i, step_text, img_b64_current, img_b64_next))
 
-        # 呼叫 Gemini API
-        error, response_text = call_gemini_api(parameter, client, messages)
+#         # 控制 messages 長度
+#         messages = clip_message_and_obs(messages)
 
-        if error:
-            logging.error(f"Failed to reason step {i}")
-            continue
+#         # 呼叫 Gemini API
+#         error, response_text = call_gemini_api(client, messages)
 
-        # 把 assistant 回答也加入 messages
-        reasoning = re.split(pattern, response_text)[1].strip()
-        messages.append({
-            'role': 'assistant',
-            'content': response_text
-        })
+#         if error:
+#             logging.error(f"Failed to reason step {i}")
+#             continue
 
-        json_recording['userInteraction_recording'][i]["Reasoning_of_Executing"] = reasoning
-        logging.info(f"Step_{i} reasoning: {reasoning}")
-        logging.info(f"Finished reasoning step {i}")
-        print(f"Finished reasoning step {i}")
-        if i == (len(steps) - 1):
-            break
-        i += 1
+#         # 把 assistant 回答也加入 messages
+#         reasoning = re.split(pattern, response_text)[1].strip()
+#         messages.append({
+#             'role': 'assistant',
+#             'content': response_text
+#         })
+
+#         json_recording['userInteraction_recording'][i]["Reasoning_of_Executing"] = reasoning
+#         logging.info(f"Step_{i} reasoning: {reasoning}")
+#         logging.info(f"Finished reasoning step {i}")
+#         print(f"Finished reasoning step {i}")
+#         if i == (len(steps) - 1):
+#             break
+#         i += 1
     
-    # 最終記錄到json中
-    with open(os.path.join(record_dir, "Interactions_recording_with_reason.json"), 'w', encoding='utf-8') as record_file:
-        json.dump(json_recording, record_file, indent=4, ensure_ascii=False)
+#     # 最終記錄到json中
+#     with open(os.path.join(record_dir, "Interactions_recording_with_reason.json"), 'w', encoding='utf-8') as record_file:
+#         json.dump(json_recording, record_file, indent=4, ensure_ascii=False)
 # --------------------------------------------------------------------
 
-def main(ARA_parameter, task_ques="Find Kevin Duran'ts bio", start_web="https://www.google.com/"):
-    # 任務初始化
-    task_dir = os.path.join('userInteraction_recording', 'recording_{}'.format(len(os.listdir('userInteraction_recording'))))
-    os.makedirs(task_dir, exist_ok=True)
-    setup_logger(task_dir)
+def run_recorder(state):
+    
+    task_ques: str = state["user_query"]# "Find Kevin Durant's bio"
+    start_web: str = "https://www.google.com/"
+    base_record_data_dir: Path = Path("../data/userInteraction_recording")
+    base_record_data_dir.mkdir(parents=True, exist_ok=True)
+    recording_index: int = len([path for path in base_record_data_dir.iterdir() if path.is_dir()])
+    task_dir: Path = base_record_data_dir / f"recording_{recording_index}"
+    task_dir.mkdir(exist_ok=True)
+    setup_logger(str(task_dir))
     logging.info(f'########## {task_ques} ##########')
     json_recording = {"task_question": task_ques, "userInteraction_recording": []}
 
@@ -854,13 +855,14 @@ def main(ARA_parameter, task_ques="Find Kevin Duran'ts bio", start_web="https://
     userInteractions_recording(start_web=start_web, json_recording=json_recording, record_dir=task_dir)
 
     # Agent推斷操作邏輯
-    ActionReasoning_Agent_thinking(record_dir=task_dir, parameter=ARA_parameter)
+    # ActionReasoning_Agent_thinking(record_dir=task_dir)
 
     logging.info(f'########## Finish ##########')
     print('End of process')
 
 if __name__ == '__main__':
-    with open("ARA_parameter.json", 'r') as parameterfile:
-        ARA_parameter = json.load(parameterfile)
-    os.makedirs('userInteraction_recording', exist_ok=True)
-    main(ARA_parameter)
+    state = {
+        "recording_task_ques": "Find Kevin Durant's bio",
+        "recording_start_web": "https://www.google.com/"
+    }
+    run_recorder(state=state)
