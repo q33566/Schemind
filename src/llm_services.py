@@ -161,7 +161,7 @@ class DispatcherLLMService(BaseLLMService):
         is_filesystem_task: bool = Field(
             ...,
             title="Is Filesystem Task",
-            description="True if the task involves managing the local filesystem, including creating, copying, deleting, or listing files and directories.",
+            description="True if the task involves managing the local filesystem, including creating, copying, deleting, or sending files to others.",
         )
         is_web_record_task: bool = Field(
             ...,
@@ -218,14 +218,12 @@ class MessageSenderLLMService(BaseLLMService):
         self._llm = self._llm.bind_tools(self._tools)
         self._chain = self._prompt | self._llm
         
-    def run(self, user_query, file_path) -> str:
-
-        result = self._chain.invoke(
-            {
-                "user_query": user_query,
-                "file_path": file_path,
-            }
-        )
+    def run(self, user_query, retriever) -> str:
+        chain = {
+            "context": retriever,
+            "user_query": RunnablePassthrough(),
+        } | self._chain
+        result = chain.invoke(user_query)
         args = result.tool_calls[0]["args"]
         return args
         
