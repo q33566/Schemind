@@ -5,29 +5,39 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 from langgraph.graph import StateGraph, START, END
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+ 
 
 
-embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
-vectorstore = Chroma(
+#embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+embeddings2 = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+vectorstore_filesystem_manager = Chroma(
     collection_name="filesystem_manager",
-    embedding_function=embeddings,
+    embedding_function=embeddings2,
     persist_directory="../data/filesystem_manager_db",
 )
 vectorstore_web_manual = Chroma(
     collection_name="web_user_manual",
-    embedding_function=embeddings,
+    embedding_function=embeddings2,
     persist_directory="../data/web_user_manual_db",
 )
+vectorstore_email_contact = Chroma(
+    collection_name="email_contact",
+    embedding_function=embeddings2,
+    persist_directory="../data/email_contact_db",
+)
+
 llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
 
 synchronizer: Synchronizer = Synchronizer(
     observed_directory="../data/mock_filesystem",
-    vectorstore=vectorstore,
+    vectorstore=vectorstore_filesystem_manager,
     llm=llm,
+    sleep_time_each_file_when_embedding=4
 )
 
 file_retriever: FileRetriever = FileRetriever(
-    vectorstore=vectorstore,
+    vectorstore=vectorstore_filesystem_manager,
     llm=llm,
 )
 
@@ -38,6 +48,7 @@ browser_use: BrowserUse = BrowserUse(
 )
 messenge_sender: MessageSender = MessageSender(
     llm=llm,
+    vectorstore=vectorstore_email_contact,
 )
 webguider: WebGuider = WebGuider(vectorstore=vectorstore_web_manual, llm=llm, k=2)
 recorder: UserActionRecorder = UserActionRecorder()
@@ -65,9 +76,10 @@ graph = graph_builder.compile()
 
 
 async def main():
+    user_query = input("請輸入指令: ")
     output = await graph.ainvoke(
         {
-            "user_query": "幫我把電算中心email申請單傳給qaz571232@gmail.com",
+            "user_query": user_query,
         }
     )
     print(output)

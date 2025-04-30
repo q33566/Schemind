@@ -29,7 +29,6 @@ class FileDescriptorPrompt:
         ]
     )
 
-
 @dataclass
 class FileRetrieverLLMServicePrompt:
     _system_prompt: str = dedent(
@@ -59,7 +58,6 @@ class FileRetrieverLLMServicePrompt:
         [("system", _system_prompt), ("user", _user_prompt)]
     )
 
-
 @dataclass
 class DispatcherPrompt:
     _system_prompt: str = dedent(
@@ -69,7 +67,7 @@ class DispatcherPrompt:
 
         - Web Task (is_web_task): The user expects the agent itself to autonomously operate a web browser to complete the task. This includes actions like clicking links, filling out forms, scraping data, or downloading files from websites.
 
-        - Filesystem Task (is_filesystem_task): The task involves managing the local filesystem, including creating, copying, deleting, or listing files and directories.
+        - Filesystem Task (is_filesystem_task): The task involves managing the local filesystem, including creating, copying, deleting, or sending files to others.
 
         - Web Record Task (is_web_record_task): The user must personally operate the web browser to demonstrate the task because the agent may not be familiar with it yet. The session will be recorded as a tutorial or manual for the agent to study and use for future automation.
 
@@ -97,7 +95,6 @@ class DispatcherPrompt:
         [("system", _system_prompt), ("user", _user_prompt)]
     )
 
-
 @dataclass
 class WebManualLLMServicePrompt:
     _system_prompt: str = dedent(
@@ -120,6 +117,7 @@ class WebManualLLMServicePrompt:
         [("system", _system_prompt), ("user", _user_prompt)]
     )
 
+@dataclass
 class UserActionRecorderPrompt:
     system_prompt: str = dedent(
         """
@@ -164,6 +162,7 @@ class UserActionRecorderPrompt:
         """
     ).strip()
     
+@dataclass
 class MessageSenderPrompt:
     _system_prompt: str = dedent(
         """
@@ -174,7 +173,8 @@ class MessageSenderPrompt:
     _user_prompt: str = dedent(
         """
         query: {user_query}
-        file_path: {file_path}
+        context: {context}
+        Please send the message according to the user's query. also find the corresponding email address from the context.
         """
     ).strip()
     

@@ -14,3 +14,4 @@ wheels/
 mock_filesystem/
 dev.ipynb
 chroma/
+data/
