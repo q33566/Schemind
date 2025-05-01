@@ -135,7 +135,7 @@ class BrowserUseLLMService(BaseLLMService):
             )
         )
 
-    async def run(self, state, user_query: str) -> str:
+    async def run(self, state, user_query: str):
         """Run the browser agent with the given task."""
         agent = Agent(
             task=user_query,
@@ -149,7 +149,9 @@ class BrowserUseLLMService(BaseLLMService):
             browser=self._browser,
             extend_system_message=state["web_manual"],
         )
-        result = await agent.run(max_steps=25)
+        history  = await agent.run(max_steps=25)
+        return history
+        
 
 
 class DispatcherLLMService(BaseLLMService):

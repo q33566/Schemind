@@ -27,7 +27,7 @@ vectorstore_email_contact = Chroma(
     persist_directory="../data/email_contact_db",
 )
 
-llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
+llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
 
 synchronizer: Synchronizer = Synchronizer(
     observed_directory="../data/mock_filesystem",
