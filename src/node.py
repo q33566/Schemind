@@ -216,7 +216,8 @@ class BrowserUse(BaseService):
 
     async def run(self, state: State) -> None:
         user_query = state["user_query"]
-        await self._browser_use_llm_service.run(user_query=user_query, state=state)
+        history = await self._browser_use_llm_service.run(user_query=user_query, state=state)
+        return {"browser_use_is_done": history.is_successful()}
 
 class Dispatcher(BaseService):
     def __init__(self, llm: BaseChatModel = None):
