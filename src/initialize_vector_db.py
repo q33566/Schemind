@@ -27,14 +27,14 @@ class FeatureItem(BaseModel):
     feature: Feature = Field(..., description="An object containing feature details.")
 class FeatureList(RootModel[List[FeatureItem]]):
     pass 
-def store_web_user_manual_to_vector_db() -> Chroma:
+def store_web_user_manual_to_vector_db(delay: int = 4) -> Chroma:
     pdf_data_folder = Path("../data/pdf_data")
     web_data_folder = Path("../data/web_data")
     pdf_data_folder.mkdir(parents=True, exist_ok=True)
     web_data_folder.mkdir(parents=True, exist_ok=True)
     vectorstore_dir: str = "../data/web_user_manual_db"
 
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
     vectorstore = Chroma(
         collection_name="web_user_manual",
         embedding_function=embeddings,
@@ -43,7 +43,7 @@ def store_web_user_manual_to_vector_db() -> Chroma:
     
     json_files: list[Path] = list(pdf_data_folder.glob("*.json")) + list(web_data_folder.glob("*.json"))
     documents: list[Document] = []
-    for json_file in json_files:
+    for json_file in tqdm(json_files, desc="Processing JSON files", unit="file"):
         with json_file.open("r", encoding="utf-8") as f:
             data = json.load(f)
             featurelist = FeatureList.model_validate(data)
@@ -97,4 +97,5 @@ def store_email_contact_to_vector_db() -> Chroma:
 
 
 if __name__ == "__main__":
-    store_email_contact_to_vector_db()
+    #store_email_contact_to_vector_db()
+    store_web_user_manual_to_vector_db()

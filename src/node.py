@@ -16,8 +16,9 @@ from user_action_recorder_service import run_recorder
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
+from langchain_core.vectorstores import VectorStoreRetriever
+
 from abc import ABC, abstractmethod
-from schemas import FileDescription
 from schemas import State
 from utils import send_email_with_attachment
 
@@ -273,19 +274,19 @@ class MessageSender(BaseService):
             vectorstore: Chroma,
             llm: BaseChatModel,
             serch_type: str = "similarity",
-            k: int = 10,
+            k: int = 4,
         ):
         super().__init__(name=self.__class__.__name__)
         self._vectorstore = vectorstore
         self._llm_service: MessageSenderLLMService = MessageSenderLLMService(
             llm=llm,
         )
-        self._retriever = vectorstore.as_retriever(
+        self._retriever: VectorStoreRetriever = vectorstore.as_retriever(
             search_type=serch_type, search_kwargs={"k": k}
         )
 
     def run(self, state: State) -> None:
         user_query: str = state["user_query"]
         file_path: str = state["retrieved_file_path"] 
-        args: dict = self._llm_service.run(user_query=user_query, retriever=self._retriever)
+        args: dict = self._llm_service.run(user_query=user_query, file_path=file_path, retriever=self._retriever)
         send_email_with_attachment.invoke(args)

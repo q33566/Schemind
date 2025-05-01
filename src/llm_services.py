@@ -10,7 +10,7 @@ from prompts import (
     MessageSenderPrompt
 )
 from markitdown import MarkItDown
-from langchain_core.runnables import RunnablePassthrough
+from langchain_core.runnables import RunnablePassthrough, RunnableMap, RunnableLambda
 from langchain_core.vectorstores import VectorStoreRetriever
 from schemas import FileDescription
 from abc import ABC, abstractmethod
@@ -218,12 +218,13 @@ class MessageSenderLLMService(BaseLLMService):
         self._llm = self._llm.bind_tools(self._tools)
         self._chain = self._prompt | self._llm
         
-    def run(self, user_query, retriever) -> str:
-        chain = {
-            "context": retriever,
-            "user_query": RunnablePassthrough(),
-        } | self._chain
-        result = chain.invoke(user_query)
+    def run(self, retriever: VectorStoreRetriever, user_query: str, file_path: str) -> str:
+        chain = RunnableMap({
+            "context": RunnableLambda(lambda x: retriever.invoke(x["user_query"])),  # retriever 只拿到 user_query
+            "user_query": lambda x: x["user_query"],
+            "file_path": lambda x: x["file_path"]
+        }) | self._chain
+        result = chain.invoke({"user_query": user_query, "file_path": file_path})
         args = result.tool_calls[0]["args"]
         return args
         
