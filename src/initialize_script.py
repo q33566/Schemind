@@ -4,7 +4,6 @@ from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 from pathlib import Path
 import json
-import os
 
 # 資料夾設定
 pdf_data_folder = Path("../data/pdf_data")
