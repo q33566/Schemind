@@ -215,9 +215,9 @@ name = "azure-ai-documentintelligence"
 version = "1.0.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "azure-core", marker = "python_full_version >= '3.13'" },
-    { name = "isodate", marker = "python_full_version >= '3.13'" },
-    { name = "typing-extensions", marker = "python_full_version >= '3.13'" },
+    { name = "azure-core" },
+    { name = "isodate" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/44/7b/8115cd713e2caa5e44def85f2b7ebd02a74ae74d7113ba20bdd41fd6dd80/azure_ai_documentintelligence-1.0.2.tar.gz", hash = "sha256:4d75a2513f2839365ebabc0e0e1772f5601b3a8c9a71e75da12440da13b63484", size = 170940 }
 wheels = [
@@ -229,9 +229,9 @@ name = "azure-core"
 version = "1.33.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "requests", marker = "python_full_version >= '3.13'" },
-    { name = "six", marker = "python_full_version >= '3.13'" },
-    { name = "typing-extensions", marker = "python_full_version >= '3.13'" },
+    { name = "requests" },
+    { name = "six" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/75/aa/7c9db8edd626f1a7d99d09ef7926f6f4fb34d5f9fa00dc394afdfe8e2a80/azure_core-1.33.0.tar.gz", hash = "sha256:f367aa07b5e3005fec2c1e184b882b0b039910733907d001c20fb08ebb8c0eb9", size = 295633 }
 wheels = [
@@ -243,11 +243,11 @@ name = "azure-identity"
 version = "1.21.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "azure-core", marker = "python_full_version >= '3.13'" },
-    { name = "cryptography", marker = "python_full_version >= '3.13'" },
-    { name = "msal", marker = "python_full_version >= '3.13'" },
-    { name = "msal-extensions", marker = "python_full_version >= '3.13'" },
-    { name = "typing-extensions", marker = "python_full_version >= '3.13'" },
+    { name = "azure-core" },
+    { name = "cryptography" },
+    { name = "msal" },
+    { name = "msal-extensions" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b5/a1/f1a683672e7a88ea0e3119f57b6c7843ed52650fdcac8bfa66ed84e86e40/azure_identity-1.21.0.tar.gz", hash = "sha256:ea22ce6e6b0f429bc1b8d9212d5b9f9877bd4c82f1724bfa910760612c07a9a6", size = 266445 }
 wheels = [
@@ -637,7 +637,7 @@ name = "cryptography"
 version = "44.0.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cffi", marker = "python_full_version >= '3.13' and platform_python_implementation != 'PyPy'" },
+    { name = "cffi", marker = "platform_python_implementation != 'PyPy'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/cd/25/4ce80c78963834b8a9fd1cc1266be5ed8d1840785c0f2e1b73b8d128d505/cryptography-44.0.2.tar.gz", hash = "sha256:c63454aa261a0cf0c5b4718349629793e9e634993538db841165b3df74f37ec0", size = 710807 }
 wheels = [
@@ -1008,24 +1008,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/cb/8e/8f45c9a32f73e786e954b8f9761c61422955d23c45d1e8c347f9b4b59e8e/google_auth-2.39.0.tar.gz", hash = "sha256:73222d43cdc35a3aeacbfdcaf73142a97839f10de930550d89ebfe1d0a00cde7", size = 274834 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ce/12/ad37a1ef86006d0a0117fc06a4a00bd461c775356b534b425f00dde208ea/google_auth-2.39.0-py2.py3-none-any.whl", hash = "sha256:0150b6711e97fb9f52fe599f55648950cc4540015565d8fbb31be2ad6e1548a2", size = 212319 },
-]
-
-[[package]]
-name = "google-genai"
-version = "1.12.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "anyio" },
-    { name = "google-auth" },
-    { name = "httpx" },
-    { name = "pydantic" },
-    { name = "requests" },
-    { name = "typing-extensions" },
-    { name = "websockets" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/38/9c/c907dbea921663bb7c41f415337bedd08259d17da8d156396c7237611744/google_genai-1.12.1.tar.gz", hash = "sha256:5c7eda422360643ce602a3f6b23152470ec1039310ef40080cbe4e71237f6391", size = 167752 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/29/2c/5b454dec837328eb167e78f45a14da502af223f8b94a4824e2fd0df74f19/google_genai-1.12.1-py3-none-any.whl", hash = "sha256:7cbc1bc029712946ce41bcf80c0eaa89eb8c09c308efbbfe30fd491f402c258a", size = 165940 },
 ]
 
 [[package]]
@@ -1937,7 +1919,7 @@ name = "mammoth"
 version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cobble", marker = "python_full_version >= '3.13'" },
+    { name = "cobble" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d6/a6/27a13ba068cf3ff764d631b8dd71dee1b33040aa8c143f66ce902b7d1da0/mammoth-1.9.0.tar.gz", hash = "sha256:74f5dae10ca240fd9b7a0e1a6deaebe0aad23bc590633ef6f5e868aa9b7042a6", size = 50906 }
 wheels = [
@@ -2022,6 +2004,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/cb/e8/83669ba97718bbbccd4c432b763d22783df4c8218e770717151acf01e85b/markitdown-0.1.1.tar.gz", hash = "sha256:da97a55a45a3d775ea758e88a344d5cac94ee97115fb0293f99027d32c2fc3f6", size = 31475 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0b/8a/c1f85ee609de5d45f80d0213bebf6664f76ab406e9d57709e684a4a436ba/markitdown-0.1.1-py3-none-any.whl", hash = "sha256:98ea8c009fe174b37ef933e00f4364214e8fed35691178b8521b13604d0c4a58", size = 48230 },
+]
+
+[package.optional-dependencies]
+all = [
+    { name = "azure-ai-documentintelligence", marker = "python_full_version < '3.13'" },
+    { name = "azure-identity", marker = "python_full_version < '3.13'" },
+    { name = "mammoth", marker = "python_full_version < '3.13'" },
+    { name = "olefile", marker = "python_full_version < '3.13'" },
+    { name = "openpyxl", marker = "python_full_version < '3.13'" },
+    { name = "pandas", marker = "python_full_version < '3.13'" },
+    { name = "pdfminer-six", marker = "python_full_version < '3.13'" },
+    { name = "pydub", marker = "python_full_version < '3.13'" },
+    { name = "python-pptx", marker = "python_full_version < '3.13'" },
+    { name = "speechrecognition", marker = "python_full_version < '3.13'" },
+    { name = "xlrd", marker = "python_full_version < '3.13'" },
+    { name = "youtube-transcript-api", marker = "python_full_version < '3.13'" },
 ]
 
 [[package]]
@@ -2203,9 +2201,9 @@ name = "msal"
 version = "1.32.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cryptography", marker = "python_full_version >= '3.13'" },
-    { name = "pyjwt", extra = ["crypto"], marker = "python_full_version >= '3.13'" },
-    { name = "requests", marker = "python_full_version >= '3.13'" },
+    { name = "cryptography" },
+    { name = "pyjwt", extra = ["crypto"] },
+    { name = "requests" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/3f/90/81dcc50f0be11a8c4dcbae1a9f761a26e5f905231330a7cacc9f04ec4c61/msal-1.32.3.tar.gz", hash = "sha256:5eea038689c78a5a70ca8ecbe1245458b55a857bd096efb6989c69ba15985d35", size = 151449 }
 wheels = [
@@ -2217,7 +2215,7 @@ name = "msal-extensions"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "msal", marker = "python_full_version >= '3.13'" },
+    { name = "msal" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/01/99/5d239b6156eddf761a636bded1118414d161bd6b7b37a9335549ed159396/msal_extensions-1.3.1.tar.gz", hash = "sha256:c5b0fd10f65ef62b5f1d62f4251d51cbcaf003fcedae8c91b040a488614be1a4", size = 23315 }
 wheels = [
@@ -2590,7 +2588,7 @@ name = "openpyxl"
 version = "3.1.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "et-xmlfile", marker = "python_full_version >= '3.13'" },
+    { name = "et-xmlfile" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/3d/f9/88d94a75de065ea32619465d2f77b29a0469500e99012523b91cc4141cd1/openpyxl-3.1.5.tar.gz", hash = "sha256:cf0e3cf56142039133628b5acffe8ef0c12bc902d2aadd3e0fe5878dc08d1050", size = 186464 }
 wheels = [
@@ -2851,10 +2849,10 @@ name = "pandas"
 version = "2.2.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy", marker = "python_full_version >= '3.13'" },
-    { name = "python-dateutil", marker = "python_full_version >= '3.13'" },
-    { name = "pytz", marker = "python_full_version >= '3.13'" },
-    { name = "tzdata", marker = "python_full_version >= '3.13'" },
+    { name = "numpy" },
+    { name = "python-dateutil" },
+    { name = "pytz" },
+    { name = "tzdata" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9c/d6/9f8431bacc2e19dca897724cd097b1bb224a6ad5433784a44b587c7c13af/pandas-2.2.3.tar.gz", hash = "sha256:4f18ba62b61d7e192368b84517265a99b4d7ee8912f8708660fb4a366cc82667", size = 4399213 }
 wheels = [
@@ -2928,8 +2926,8 @@ name = "pdfminer-six"
 version = "20250416"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "charset-normalizer", marker = "python_full_version >= '3.13'" },
-    { name = "cryptography", marker = "python_full_version >= '3.13'" },
+    { name = "charset-normalizer" },
+    { name = "cryptography" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a8/27/1a99ce4cfce829bb91040f82a53f33b33fec4e070d2b9c1b45f6796cd8dc/pdfminer_six-20250416.tar.gz", hash = "sha256:30956a85f9d0add806a4e460ed0d67c2b6a48b53323c7ac87de23174596d3acd", size = 7384630 }
 wheels = [
@@ -3046,7 +3044,6 @@ source = { virtual = "." }
 dependencies = [
     { name = "browser-use" },
     { name = "chromadb" },
-    { name = "google-genai" },
     { name = "ipywidgets" },
     { name = "langchain-chroma" },
     { name = "langchain-community" },
@@ -3054,14 +3051,13 @@ dependencies = [
     { name = "langchain-ollama" },
     { name = "langgraph" },
     { name = "markitdown", version = "0.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
-    { name = "markitdown", version = "0.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13'" },
+    { name = "markitdown", version = "0.1.1", source = { registry = "https://pypi.org/simple" }, extra = ["all"], marker = "python_full_version < '3.13'" },
     { name = "openai" },
     { name = "patchright" },
     { name = "pillow" },
     { name = "pydantic", extra = ["email"] },
     { name = "pypdf" },
     { name = "python-dotenv" },
-    { name = "python-pptx" },
     { name = "rich" },
     { name = "selenium" },
     { name = "tqdm" },
@@ -3078,21 +3074,19 @@ dev = [
 requires-dist = [
     { name = "browser-use", specifier = ">=0.1.41" },
     { name = "chromadb", specifier = ">=0.6.3" },
-    { name = "google-genai", specifier = ">=1.5.0" },
     { name = "ipywidgets", specifier = ">=8.1.6" },
     { name = "langchain-chroma", specifier = ">=0.2.2" },
     { name = "langchain-community", specifier = ">=0.3.20" },
     { name = "langchain-google-genai", specifier = ">=2.1.2" },
     { name = "langchain-ollama", specifier = ">=0.3.0" },
     { name = "langgraph", specifier = ">=0.3.34" },
-    { name = "markitdown", specifier = ">=0.0.2" },
+    { name = "markitdown", extras = ["all"], specifier = ">=0.0.2" },
     { name = "openai", specifier = ">=1.68.2" },
     { name = "patchright", specifier = ">=1.51.3" },
     { name = "pillow", specifier = "==10.1.0" },
     { name = "pydantic", extras = ["email"], specifier = ">=2.10.6" },
     { name = "pypdf", specifier = ">=5.4.0" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
-    { name = "python-pptx", specifier = ">=1.0.2" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "selenium", specifier = "==4.15.2" },
     { name = "tqdm", specifier = ">=4.67.1" },
@@ -3458,7 +3452,7 @@ wheels = [
 
 [package.optional-dependencies]
 crypto = [
-    { name = "cryptography", marker = "python_full_version >= '3.13'" },
+    { name = "cryptography" },
 ]
 
 [[package]]
@@ -6122,7 +6116,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "audioop-lts", marker = "python_full_version >= '3.13'" },
     { name = "standard-aifc", marker = "python_full_version >= '3.13'" },
-    { name = "typing-extensions", marker = "python_full_version >= '3.13'" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a3/81/2f98238647f409d8faa209a0cbe9a1e2be74eeca5f739971698a2b54b12d/speechrecognition-3.14.2.tar.gz", hash = "sha256:2daa467f0b5686017ff3f9a64dcfa1a789ee10d1b0ada3be74bfad10eaef5f49", size = 32857832 }
 wheels = [
@@ -6914,8 +6908,8 @@ name = "youtube-transcript-api"
 version = "1.0.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "defusedxml", marker = "python_full_version >= '3.13'" },
-    { name = "requests", marker = "python_full_version >= '3.13'" },
+    { name = "defusedxml" },
+    { name = "requests" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b0/32/f60d87a99c05a53604c58f20f670c7ea6262b55e0bbeb836ffe4550b248b/youtube_transcript_api-1.0.3.tar.gz", hash = "sha256:902baf90e7840a42e1e148335e09fe5575dbff64c81414957aea7038e8a4db46", size = 2153252 }
 wheels = [
