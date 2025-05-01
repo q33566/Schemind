@@ -1,6 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate
 from dataclasses import dataclass
 from textwrap import dedent
+from langchain_core.messages import SystemMessage, HumanMessage
 
 
 @dataclass
@@ -117,10 +118,11 @@ class WebManualLLMServicePrompt:
         [("system", _system_prompt), ("user", _user_prompt)]
     )
 
-@dataclass
-class UserActionRecorderPrompt:
-    system_prompt: str = dedent(
-        """
+from langchain_core.prompts import ChatPromptTemplate
+from textwrap import dedent
+
+class ActionReasoningPrompt:
+    _system_prompt: str = dedent("""
         You are an expert specializing in analyzing user behavior during web interactions.
 
         You will be provided with a "Task Goal" and all the web interaction steps required to complete this goal.  
@@ -134,33 +136,47 @@ class UserActionRecorderPrompt:
 
         **Analysis Guidelines**:
         - When analyzing screenshots, focus on key visual changes such as:
-        - New elements appearing or disappearing (e.g., a search result, a form submission confirmation).
-        - Changes in focus (e.g., a button being highlighted or a new section being scrolled into view).
-        - Page layout updates (e.g., navigation to a new page, pop-up dialogs).
-        - If screenshots are missing, rely on the Action Description and Task Goal to infer the likely page changes. For example, if the action is "Click on element with text 'Wikipedia'", assume the user navigates to a Wikipedia page and reason based on that assumption.
-        - If available, consider the context of previous steps and their reasoning to understand the user's progression toward the Task Goal.
-        - When inferring the reasoning, consider the user's potential motivations, such as seeking specific information, navigating to a relevant page, or completing a required action. Clearly explain how this step advances the user toward the Task Goal, focusing on the specific progress made (e.g., accessing new information, submitting data, or reaching a target page).
+          - New elements appearing or disappearing (e.g., a search result, a form submission confirmation).
+          - Changes in focus (e.g., a button being highlighted or a new section being scrolled into view).
+          - Page layout updates (e.g., navigation to a new page, pop-up dialogs).
+        - If screenshots are missing, rely on the Action Description and Task Goal to infer the likely page changes.
+        - If available, consider previous steps and their reasoning to understand the user's progression toward the Task Goal.
+        - When inferring the reasoning, consider motivations like seeking info, navigating, or completing a task.
 
         **Special Case**:
-        - If the Action Description indicates that the task is complete (e.g., "Task Completed"), verify if the final screenshot shows content that satisfies the Task Goal (e.g., the target information is visible, or the desired action is confirmed). Explicitly state that this operation signifies the successful completion of the Task Goal, and explain how the final state aligns with the goal.
-
-        Provide a logical, detailed, and clearly task-oriented reasoning explanation.
-        Avoid simply repeating the action description — you must focus on **the motivation and intention behind the action**.
+        - If the Action Description says "Task Completed", verify that the final screenshot reflects the Task Goal's completion.
 
         Strictly follow this output format:
-        Reasoning: {Your detailed inference and explanation}
+        reasoning: Your detailed inference and explanation
 
         **Important Rules**:
         - **Do NOT** repeat the action description.
-        - **Do NOT** list multiple possibilities. Infer the most likely reasoning based on evidence.
-        - You may think step-by-step internally, but only output the final reasoning.
-        - Strictly follow the output format.
+        - **Do NOT** list multiple possibilities.
+        - Only output the final reasoning.
 
-        For each action, the User will provide:
-        one "Action Description" and two webpage screenshots (before and after the action).  
-        Analyze only one action at a time. After responding, wait for the next action to be sent.
-        """
-    ).strip()
+        You will receive:
+        - One "Action Description"
+        - Two screenshots (before & after)
+    """).strip()
+
+    prompt_template = ChatPromptTemplate.from_messages([
+        {"role": "system", "content": _system_prompt},
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "The Task Goal is: {user_query}."},
+                {"type": "text", "text": "You will receive each operation step one by one to reason how each operation helps complete this task."},
+                {"type": "text", "text": "Now analyzing action step {step}."},
+                {"type": "text", "text": "Action Description: \"{step_text}\""},
+                {"type": "text", "text": "1. Screenshot BEFORE the action:"},
+                {"type": "image_url", "image_url": {"url": "{before_image_url}"}},
+                {"type": "text", "text": "2. Screenshot AFTER the action:"},
+                {"type": "image_url", "image_url": {"url": "{after_image_url}"}},
+                {"type": "text", "text": "Please carefully infer the reasoning and intention behind this step based on the available information."}
+            ]
+        }
+    ])
+
     
 @dataclass
 class MessageSenderPrompt:

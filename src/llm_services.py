@@ -7,7 +7,8 @@ from prompts import (
     FileRetrieverLLMServicePrompt,
     DispatcherPrompt,
     WebManualLLMServicePrompt,
-    MessageSenderPrompt
+    MessageSenderPrompt,
+    ActionReasoningPrompt
 )
 from markitdown import MarkItDown
 from langchain_core.runnables import RunnablePassthrough, RunnableMap, RunnableLambda
@@ -227,4 +228,27 @@ class MessageSenderLLMService(BaseLLMService):
         result = chain.invoke({"user_query": user_query, "file_path": file_path})
         args = result.tool_calls[0]["args"]
         return args
+    
+class ActionReasoningLLMService(BaseLLMService):
+    class OutputFormat(BaseModel):
+        reasoning: str = Field(
+            ...,
+            title="Reasoning",
+            description="The reasoning behind the action taken by the user.",
+        )
+
+    def __init__(self, llm: BaseChatModel):
+        super().__init__(llm, self.OutputFormat, name=self.__class__.__name__)
+        self._prompt: ChatPromptTemplate = ActionReasoningPrompt.prompt_template
+        self._chain = self._prompt | self._llm
+        
+    def run(self, user_query: str, before_image_url, after_image_url, step, step_text) -> str:
+        result: ActionReasoningLLMService.OutputFormat = self._chain.invoke({
+            "before_image_url": before_image_url,
+            "after_image_url": after_image_url,
+            "step": step,
+            "step_text": step_text,
+            "user_query": user_query,
+        })
+        return result.reasoning
         
