@@ -2,6 +2,7 @@ from langchain_chroma import Chroma
 from schemas import FileSnapshot
 from pathlib import Path
 from tqdm import tqdm
+import time
 from typing import List, Dict, Tuple
 from llm_services import (
     FileDescriptor,
@@ -9,14 +10,17 @@ from llm_services import (
     BrowserUseLLMService,
     DispatcherLLMService,
     WebGuiderLLMService,
+    MessageSenderLLMService
 )
 from user_action_recorder_service import run_recorder
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
+from langchain_core.vectorstores import VectorStoreRetriever
+
 from abc import ABC, abstractmethod
-from schemas import FileDescription
 from schemas import State
+from utils import send_email_with_attachment
 
 
 class BaseService(ABC):
@@ -27,7 +31,6 @@ class BaseService(ABC):
     def run(self, *args, **kwargs):
         pass
 
-
 class Synchronizer(BaseService):
     def __init__(
         self,
@@ -35,6 +38,7 @@ class Synchronizer(BaseService):
         vectorstore: Chroma = None,
         llm: BaseChatModel = None,
         max_content_length: int = 100,
+        sleep_time_each_file_when_embedding: int = 0,
     ):
         super().__init__(name=self.__class__.__name__)
         self._observed_directory: str = observed_directory
@@ -42,6 +46,7 @@ class Synchronizer(BaseService):
         self._file_descriptor: FileDescriptor = FileDescriptor(
             llm=llm, max_content_length=max_content_length
         )
+        self._sleep_time_each_file_when_embedding: int = sleep_time_each_file_when_embedding
 
     def _get_last_modified_time(self, file: Path) -> int:
         """Get the last modified time of a file."""
@@ -163,21 +168,17 @@ class Synchronizer(BaseService):
                 self._vectorstore.delete(where={"file_name": file_snapshot.file_name})
 
         if need_update_files:
-            documents = [
-                Document(
-                    page_content=self._file_descriptor.run(file_snapshot.file_name),
-                    metadata={
-                        "file_name": file_snapshot.file_name,
-                        "last_modified_time": file_snapshot.last_modified_time,
-                    },
-                )
-                for file_snapshot in tqdm(
-                    need_update_files, desc="Creating files description"
-                )
-            ]
+            documents: list[Document] = []
+            for file_snapshot in tqdm(need_update_files, desc="Creating files description"):
+                content = self._file_descriptor.run(file_snapshot.file_name)
+                metadata = {
+                    "file_name": file_snapshot.file_name,
+                    "last_modified_time": file_snapshot.last_modified_time,
+                }
+                documents.append(Document(page_content=content, metadata=metadata))
+                time.sleep(self._sleep_time_each_file_when_embedding)  
             self._vectorstore.add_documents(documents)
         return
-
 
 class FileRetriever(BaseService):
     def __init__(
@@ -188,7 +189,7 @@ class FileRetriever(BaseService):
         k: int = 10,
     ):
         super().__init__(name=self.__class__.__name__)
-        self._file_ranker: FileRetrieverLLMService = FileRetrieverLLMService(
+        self._file_retriever_llm_service: FileRetrieverLLMService = FileRetrieverLLMService(
             llm=llm,
         )
         self._retriever = vectorstore.as_retriever(
@@ -197,10 +198,9 @@ class FileRetriever(BaseService):
 
     def run(self, state: State) -> str:
         """Retrieve files from the vector database based on the query."""
-        query = input("Enter your query: ")
-        result: str = self._file_ranker.run(user_query=query, retriever=self._retriever)
+        query = state["user_query"]
+        result: str = self._file_retriever_llm_service.run(user_query=query, retriever=self._retriever)
         return {"retrieved_file_path": result}
-
 
 class BrowserUse(BaseService):
     def __init__(self, llm: BaseChatModel, planner_llm: BaseChatModel = None):
@@ -214,7 +214,6 @@ class BrowserUse(BaseService):
         user_query = state["user_query"]
         await self._browser_use_llm_service.run(user_query=user_query, state=state)
 
-
 class Dispatcher(BaseService):
     def __init__(self, llm: BaseChatModel = None):
         super().__init__(name=self.__class__.__name__)
@@ -225,9 +224,9 @@ class Dispatcher(BaseService):
     def branch(self, state: State) -> str:
         print("tast_classification:", state["task_classification"])
         if state["task_classification"] == "filesystem":
-            return FileRetriever.__name__
-        # elif state["task_classification"] == "web":
-        #     return WebGuider.__name__
+            return Synchronizer.__name__
+        elif state["task_classification"] == "web":
+            return WebGuider.__name__
         elif state["task_classification"] == "recorder":
             return UserActionRecorder.__name__
         else:
@@ -237,7 +236,6 @@ class Dispatcher(BaseService):
         user_query = state["user_query"]
         task: str = self._llm_service.run(user_query=user_query)
         return {"task_classification": task}
-
 
 class WebGuider(BaseService):
     def __init__(
@@ -269,3 +267,26 @@ class UserActionRecorder(BaseService):
 
     def run(self, state: State) -> None:
         run_recorder(state=state)
+        
+class MessageSender(BaseService):
+    def __init__(
+            self,
+            vectorstore: Chroma,
+            llm: BaseChatModel,
+            serch_type: str = "similarity",
+            k: int = 4,
+        ):
+        super().__init__(name=self.__class__.__name__)
+        self._vectorstore = vectorstore
+        self._llm_service: MessageSenderLLMService = MessageSenderLLMService(
+            llm=llm,
+        )
+        self._retriever: VectorStoreRetriever = vectorstore.as_retriever(
+            search_type=serch_type, search_kwargs={"k": k}
+        )
+
+    def run(self, state: State) -> None:
+        user_query: str = state["user_query"]
+        file_path: str = state["retrieved_file_path"] 
+        args: dict = self._llm_service.run(user_query=user_query, file_path=file_path, retriever=self._retriever)
+        send_email_with_attachment.invoke(args)

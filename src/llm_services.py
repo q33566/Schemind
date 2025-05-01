@@ -1,14 +1,16 @@
 from langchain_core.language_models.chat_models import BaseChatModel
 from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
+from utils import send_email_with_attachment
 from prompts import (
     FileDescriptorPrompt,
     FileRetrieverLLMServicePrompt,
     DispatcherPrompt,
     WebManualLLMServicePrompt,
+    MessageSenderPrompt
 )
 from markitdown import MarkItDown
-from langchain_core.runnables import RunnablePassthrough
+from langchain_core.runnables import RunnablePassthrough, RunnableMap, RunnableLambda
 from langchain_core.vectorstores import VectorStoreRetriever
 from schemas import FileDescription
 from abc import ABC, abstractmethod
@@ -159,7 +161,7 @@ class DispatcherLLMService(BaseLLMService):
         is_filesystem_task: bool = Field(
             ...,
             title="Is Filesystem Task",
-            description="True if the task involves managing the local filesystem, including creating, copying, deleting, or listing files and directories.",
+            description="True if the task involves managing the local filesystem, including creating, copying, deleting, or sending files to others.",
         )
         is_web_record_task: bool = Field(
             ...,
@@ -207,3 +209,22 @@ class WebGuiderLLMService(BaseLLMService):
         } | self._chain
         result: WebGuiderLLMService.OutputFormat = chain.invoke(user_query)
         return result.content
+
+class MessageSenderLLMService(BaseLLMService):
+    def __init__(self, llm: BaseChatModel):
+        super().__init__(llm, name=self.__class__.__name__)
+        self._prompt: ChatPromptTemplate = MessageSenderPrompt.prompt_template
+        self._tools = [send_email_with_attachment]
+        self._llm = self._llm.bind_tools(self._tools)
+        self._chain = self._prompt | self._llm
+        
+    def run(self, retriever: VectorStoreRetriever, user_query: str, file_path: str) -> str:
+        chain = RunnableMap({
+            "context": RunnableLambda(lambda x: retriever.invoke(x["user_query"])),  # retriever 只拿到 user_query
+            "user_query": lambda x: x["user_query"],
+            "file_path": lambda x: x["file_path"]
+        }) | self._chain
+        result = chain.invoke({"user_query": user_query, "file_path": file_path})
+        args = result.tool_calls[0]["args"]
+        return args
+        
