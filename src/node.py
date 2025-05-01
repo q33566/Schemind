@@ -344,7 +344,8 @@ class ActionReasoner(BaseService):
         return screenshots, json_data
     def _store_to_vectorstore(self, latest_recording_json: Dict) -> None:
         task_question = latest_recording_json["task_question"]
-        self._vectorstore.add_documents(json.dumps(latest_recording_json), metadata={"task_question": task_question})
+        doc = Document(page_content=json.dumps(latest_recording_json), metadata={"task_question": task_question})
+        self._vectorstore.add_documents([doc])
         
     def run(self, state: State) -> str:
         latest_recording_screenshots, latest_recording_json = self._load_latest_recording_data()
@@ -356,8 +357,9 @@ class ActionReasoner(BaseService):
             ):
             step = i
             step_text = step_info["Actual_Interaction"]
-            before_image_url = self._local_image_to_data_url(latest_recording_screenshots[i-1])
-            after_image_url = self._local_image_to_data_url(latest_recording_screenshots[i])
+            print(step, step_text)
+            before_image_url = self._local_image_to_data_url(latest_recording_screenshots[i])
+            after_image_url = self._local_image_to_data_url(latest_recording_screenshots[min(i+1, len(latest_recording_screenshots)-1)])
             
             step_description: str = self._llm_service.run(
                 user_query=user_query,
@@ -368,5 +370,5 @@ class ActionReasoner(BaseService):
             )
             latest_recording_json["userInteraction_recording"][i]["llm_result"] = step_description
         self._store_to_vectorstore(latest_recording_json)
-        with open(f"../data/userInteraction_recording/llm_result", "w", encoding="utf-8") as f:
+        with open(f"../data/userInteraction_recording/llm_result.json", "w", encoding="utf-8") as f:
             json.dump(latest_recording_json, f, ensure_ascii=False, indent=4)
