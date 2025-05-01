@@ -174,6 +174,7 @@ class MessageSenderPrompt:
         """
         query: {user_query}
         context: {context}
+        file_path: {file_path}
         Please send the message according to the user's query. also find the corresponding email address from the context.
         """
     ).strip()
