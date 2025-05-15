@@ -1,0 +1,278 @@
+ SystemMessage 
+You are an AI agent designed to automate browser tasks. Your goal is to accomplish the ultimate task following the rules.
+
+# Input Format
+
+Task
+Previous steps
+Current URL
+Open Tabs
+Interactive Elements
+[index]<type>text</type>
+
+- index: Numeric identifier for interaction
+- type: HTML element type (button, input, etc.)
+- text: Element description
+  Example:
+  [33]<div>User form</div>
+  \t*[35]*<button aria-label='Submit form'>Submit</button>
+
+- Only elements with numeric indexes in [] are interactive
+- (stacked) indentation (with \t) is important and means that the element is a (html) child of the element above (with a lower index)
+- Elements with \* are new elements that were added after the previous step (if url has not changed)
+
+# Response Rules
+
+1. RESPONSE FORMAT: You must ALWAYS respond with valid JSON in this exact format:
+   {"current_state": {"evaluation_previous_goal": "Success|Failed|Unknown - Analyze the current elements and the image to check if the previous goals/actions are successful like intended by the task. Mention if something unexpected happened. Shortly state why/why not",
+   "memory": "Description of what has been done and what you need to remember. Be very specific. Count here ALWAYS how many times you have done something and how many remain. E.g. 0 out of 10 websites analyzed. Continue with abc and xyz",
+   "next_goal": "What needs to be done with the next immediate action"},
+   "action":[{"one_action_name": {// action-specific parameter}}, // ... more actions in sequence]}
+
+2. ACTIONS: You can specify multiple actions in the list to be executed in sequence. But always specify only one action name per item. Use maximum 8 actions per sequence.
+Common action sequences:
+
+- Form filling: [{"input_text": {"index": 1, "text": "username"}}, {"input_text": {"index": 2, "text": "password"}}, {"click_element": {"index": 3}}]
+- Navigation and extraction: [{"go_to_url": {"url": "https://example.com"}}, {"extract_content": {"goal": "extract the names"}}]
+- Actions are executed in the given order
+- If the page changes after an action, the sequence is interrupted and you get the new state.
+- Only provide the action sequence until an action which changes the page state significantly.
+- Try to be efficient, e.g. fill forms at once, or chain actions where nothing changes on the page
+- only use multiple actions if it makes sense.
+
+3. ELEMENT INTERACTION:
+
+- Only use indexes of the interactive elements
+
+4. NAVIGATION & ERROR HANDLING:
+
+- If no suitable elements exist, use other functions to complete the task
+- If stuck, try alternative approaches - like going back to a previous page, new search, new tab etc.
+- Handle popups/cookies by accepting or closing them
+- Use scroll to find elements you are looking for
+- If you want to research something, open a new tab instead of using the current tab
+- If captcha pops up, try to solve it - else try a different approach
+- If the page is not fully loaded, use wait action
+
+5. TASK COMPLETION:
+
+- Use the done action as the last action as soon as the ultimate task is complete
+- Dont use "done" before you are done with everything the user asked you, except you reach the last step of max_steps.
+- If you reach your last step, use the done action even if the task is not fully finished. Provide all the information you have gathered so far. If the ultimate task is completely finished set success to true. If not everything the user asked for is completed set success in done to false!
+- If you have to do something repeatedly for example the task says for "each", or "for all", or "x times", count always inside "memory" how many times you have done it and how many remain. Don't stop until you have completed like the task asked you. Only call done after the last step.
+- Don't hallucinate actions
+- Make sure you include everything you found out for the ultimate task in the done text parameter. Do not just say you are done, but include the requested information of the task.
+
+6. VISUAL CONTEXT:
+
+- When an image is provided, use it to understand the page layout
+- Bounding boxes with labels on their top right corner correspond to element indexes
+
+7. Form filling:
+
+- If you fill an input field and your action sequence is interrupted, most often something changed e.g. suggestions popped up under the field.
+
+8. Long tasks:
+
+- Keep track of the status and subresults in the memory.
+- You are provided with procedural memory summaries that condense previous task history (every N steps). Use these summaries to maintain context about completed actions, current progress, and next steps. The summaries appear in chronological order and contain key information about navigation history, findings, errors encountered, and current state. Refer to these summaries to avoid repeating actions and to ensure consistent progress toward the task goal.
+
+9. Extraction:
+
+- If your task is to find information - call extract_content on the specific pages to get and store the information.
+  Your responses must be always JSON with the specified format.
+
+To apply for the electronic newsletter platform, follow these steps:
+
+1.  Go to the electronic newsletter system.
+2.  Click on the edit entry to access the login interface.
+3.  Log in using your email account (without @cc.ncu.edu.tw).
+4.  After logging in, select the option to apply for a new newsletter and download the application form.
+5.  Obtain approval from your unit supervisor.
+6.  If you need the email addresses of faculty and students, submit an application to the Computing Center to request access to the subscriber database of the newsletter platform. If you choose to import accounts, you only need to submit the application form.
+7.  Finally, submit the application form and the signed application to the Computing Center to complete the application process.
+
+Keep in mind that the electronic newsletter platform account does not have default subscriber data, and each unit needs to add and maintain its own subscriber data. If you want to set the email accounts of faculty and students as the default subscriber accounts, you must submit a formal application to the Computing Center.
+
+Since I cannot directly access external systems or personal email accounts, I am unable to enroll you in the "Introduction to Space Science" course using the provided account and password. Please follow the instructions above to apply for the electronic newsletter platform. If you have further questions, feel free to ask.
+
+ HumanMessage 
+Your ultimate task is: """我想參加NCU雲端課程中太空科學簡介這個課程，請用這個帳號：111201029@cc.ncu.edu.tw，密碼：Julia64563751!幫我報名""". If you achieved your ultimate task, stop everything and use the done action in the next step to complete the task. If not, continue as usual.
+
+ HumanMessage 
+Example output:
+
+ AIMessage 
+
+
+ ToolMessage 
+Browser started
+
+ HumanMessage 
+[Your task history memory starts here]
+
+ AIMessage 
+
+
+ ToolMessage 
+
+
+ HumanMessage 
+Action error:   - navigating to "https://newsletter.cc.ncu.edu.tw/", waiting until "load"
+
+ AIMessage 
+
+
+ ToolMessage 
+
+
+ HumanMessage 
+Action result: 🖱️  Clicked button with index 0: 重新載入
+
+ AIMessage 
+
+
+ ToolMessage 
+
+
+ HumanMessage 
+Action error:   - navigating to "https://newsletter.cc.ncu.edu.tw/", waiting until "load"
+
+ AIMessage 
+
+
+ ToolMessage 
+
+
+ HumanMessage 
+Action result: 🔍  Searched for "NCU electronic newsletter system" in Google
+
+ AIMessage 
+
+
+ ToolMessage 
+
+
+ HumanMessage 
+Action result: 🔗  Navigated to https://www.cc.ncu.edu.tw/
+
+ AIMessage 
+
+
+ ToolMessage 
+
+
+ HumanMessage 
+Action result: 🖱️  Clicked button with index 33: 我同意
+
+ AIMessage 
+
+
+ ToolMessage 
+
+
+ HumanMessage 
+Action result: 🔍  Scrolled down the page by 500 pixels
+
+ HumanMessage 
+[Task history memory ends]
+[Current state starts here]
+The following is one-time information - if you need to remember it write it to memory:
+Current url: https://www.cc.ncu.edu.tw/
+Available tabs:
+[TabInfo(page_id=0, url='https://www.cc.ncu.edu.tw/', title='國立中央大學電子計算機中心 - 國立中央大學電子計算機中心', parent_page_id=None)]
+Interactive elements from top layer of the current page inside the viewport:
+... 500 pixels above - scroll or extract content to see more ...
+[0]<a title='國立中央大學電子計算機中心 ' />
+[1]<a title='上方內容區'>::: />
+[2]<a title='' />
+[3]<a title='點擊前往EN'>EN />
+[4]<button type='button' aria-expanded='false'>搜尋 />
+[5]<a title='點擊前往網站導覽'>網站導覽 />
+[6]<a title='點擊前往中央大學首頁(另開新視窗)'>中央大學首頁 />
+[7]<a title='點擊前往服務時間'>服務時間 />
+[8]<a title='點擊前往常見問題'>常見問題 />
+[9]<a title='點擊前往表單下載'>表單下載 />
+[10]<a title='點擊前往訪客'>訪客 />
+[11]<a title='點擊前往學生'>學生 />
+[12]<a title='點擊前往教職員'>教職員 />
+[13]<li >歷史沿革
+歷屆主管
+組織架構
+成員簡介
+任務說明
+軟硬體資源
+網路架構 />
+	[14]<a role='button' aria-expanded='false' title=''>中心簡介 />
+[15]<li >終端機室使用
+電腦教室借用
+電子報發報平台
+資通安全專區
+AZURE服務
+校園授權軟體
+個人資料管理系統
+機房場地出租 />
+	[16]<a role='button' aria-expanded='false' title=''>一般服務 />
+[17]<li >帳號說明
+密碼修改
+NCU Mail
+新生帳號
+畢業生帳號
+Google Workspace for Education
+Office365帳號
+Cisco Webex Meetings for NCU />
+	[18]<a role='button' aria-expanded='false' title=''>帳號服務 />
+[19]<li >無線網路
+學生宿網
+教職員宿網
+DNS
+VPN
+Netflow
+雲端運算虛擬主機服務
+Proxy
+VoIP
+網路及系統管理小組
+多雲整合虛擬桌面平台 />
+	[20]<a role='button' aria-expanded='false' title=''>網路服務 />
+[21]<li >校務資訊系統雲端平台系統架構
+整合型的校務資訊系統
+資訊系統開發與維運之作業
+核心資通系統之異地備援 />
+	[22]<a role='button' aria-expanded='false' title=''>E化服務 />
+[23]<a title='點擊前往(另開新視窗)'>桃園區域網路中心 />
+[24]<li >公告
+常見問題
+服務時間
+表單下載
+法規宣導
+電算中心服務百科
+電算中心LINE線上客服 />
+	[25]<a role='button' aria-expanded='false' title=''>其他 />
+*[26]*<a title='雲端運算虛擬主機服務辦法之收費計價標準修訂'>雲端運算虛擬主機服務辦法之收費計價標準修訂 />
+*[27]*<a title='本校無障礙網站標章認證申請及注意事項文件、RPage無障礙網頁管理注意事項已上傳'>本校無障礙網站標章認證申請及注意事項文件、RPage無障礙網頁管理注意事項已上傳 />
+*[28]*<a title='NCU Office 365 密碼政策變更通知'>NCU Office 365 密碼政策變更通知 />
+*[29]*<a title='[虛擬機服務]113/4/8將停用(刪除)已無維運及使用的虛擬機'>[虛擬機服務]113/4/8將停用(刪除)已無維運及使用的虛擬機 />
+*[30]*<a title='即日起，GPU借用服務新增四張NVIDIA Tesla P40開放借用'>即日起，GPU借用服務新增四張NVIDIA Tesla P40開放借用 />
+*[31]*<a title='[虛擬機以及虛擬路徑服務]使用情況清查至113/2/29止'>[虛擬機以及虛擬路徑服務]使用情況清查至113/2/29止 />
+*[32]*<a title='SSLVPN服務上線及舊VPN服務終止'>SSLVPN服務上線及舊VPN服務終止 />
+*[33]*<a title='中央大學智慧資安事件通知平台112年9月4日正式上線。'>中央大學智慧資安事件通知平台112年9月4日正式上線。 />
+[34]<a  />
+*[35]*<button title='回到頂部'>回到頂部 />
+... 941 pixels below - scroll or extract content to see more ...
+Current step: 8/25Current date and time: 2025-05-02 14:49
+
+ RESPONSE
+{
+  "current_state": {
+    "evaluation_previous_goal": "Success - I scrolled down to find more elements.",
+    "memory": "I need to enroll in the Introduction to Space Science course using the account 111201029@cc.ncu.edu.tw and password Julia64563751!. First, I need to go to the electronic newsletter system. I tried to go to the website but it could not be reached. Reloading the page did not work. I searched for the website on Google and went to the central university electronic computer center website. I scrolled down to find the link to the electronic newsletter system.",
+    "next_goal": "Click on the \"Form Download\" link."
+  },
+  "action": [
+    {
+      "click_element_by_index": {
+        "index": 9
+      }
+    }
+  ]
+}
