@@ -16,3 +16,4 @@ mock_filesystem/
 dev.ipynb
 chroma/
 data/
+experiment_files_db/

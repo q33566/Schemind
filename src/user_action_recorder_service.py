@@ -8,7 +8,6 @@ from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
-from prompts import UserActionRecorderPrompt
 
 # 設置log
 def setup_logger(folder_path: str):
@@ -638,6 +637,7 @@ def userInteractions_recording(start_web, json_recording, record_dir):
                 break
 
     # 最終記錄到json中
+    print("Recording finished. Saving to JSON...")
     with open(os.path.join(record_dir, "Interactions_recording.json"), 'w', encoding='utf-8') as record_file:
         json.dump(json_recording, record_file, indent=4, ensure_ascii=False)
 # --------------------------------------------------------------------

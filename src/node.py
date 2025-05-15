@@ -3,6 +3,9 @@ from schemas import FileSnapshot
 from pathlib import Path
 from tqdm import tqdm
 import time
+import base64
+import json
+from mimetypes import guess_type
 from typing import List, Dict, Tuple
 from llm_services import (
     FileDescriptor,
@@ -10,7 +13,8 @@ from llm_services import (
     BrowserUseLLMService,
     DispatcherLLMService,
     WebGuiderLLMService,
-    MessageSenderLLMService
+    MessageSenderLLMService,
+    ActionReasoningLLMService
 )
 from user_action_recorder_service import run_recorder
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -175,9 +179,9 @@ class Synchronizer(BaseService):
                     "file_name": file_snapshot.file_name,
                     "last_modified_time": file_snapshot.last_modified_time,
                 }
+                time.sleep(4)
                 documents.append(Document(page_content=content, metadata=metadata))
-                time.sleep(self._sleep_time_each_file_when_embedding)  
-            self._vectorstore.add_documents(documents)
+                self._vectorstore.add_documents([Document(page_content=content, metadata=metadata)]) 
         return
 
 class FileRetriever(BaseService):
@@ -290,3 +294,81 @@ class MessageSender(BaseService):
         file_path: str = state["retrieved_file_path"] 
         args: dict = self._llm_service.run(user_query=user_query, file_path=file_path, retriever=self._retriever)
         send_email_with_attachment.invoke(args)
+        
+class ActionReasoner(BaseService):
+    def __init__(self, llm: BaseChatModel = None, vectorstore: Chroma = None):
+        super().__init__(name=self.__class__.__name__)
+        self._llm_service: ActionReasoningLLMService = ActionReasoningLLMService(
+            llm=llm,
+        )
+        self._vectorstore: Chroma = vectorstore
+
+    def _local_image_to_data_url(self, image_path):
+        mime_type, _ = guess_type(image_path)
+        # Default to png
+        if mime_type is None:
+            mime_type = 'image/png'
+
+        # Read and encode the image file
+        with open(image_path, "rb") as image_file:
+            base64_encoded_data = base64.b64encode(image_file.read()).decode('utf-8')
+        # Construct the data URL
+        return f"data:{mime_type};base64,{base64_encoded_data}"
+    
+    def _get_latest_recording_dir(self) -> Path:
+        root = Path(r"..\data\userInteraction_recording")
+
+        recording_folders = [
+            (int(p.name.split("_")[1]), p)
+            for p in root.iterdir()
+            if p.is_dir() and p.name.startswith("recording_") and p.name.split("_")[1].isdigit()
+        ]
+        latest_recording: Path = max(recording_folders, key=lambda x: x[0])[1] if recording_folders else None
+        return latest_recording
+    
+    def _load_latest_recording_data(self) -> Tuple[List[Path], Dict]:
+        latest = self._get_latest_recording_dir()
+        if not latest:
+            raise FileNotFoundError("No valid recording folder found.")
+
+        screenshot_dir = latest / "screenshot_recording"
+        screenshots = sorted(
+            screenshot_dir.glob("screenshot_*.png"),
+            key=lambda p: int(p.stem.split("_")[1])
+        )
+
+        json_path = latest / "Interactions_recording.json"
+        with open(json_path, "r", encoding="utf-8") as f:
+            json_data = json.load(f)
+
+        return screenshots, json_data
+    def _store_to_vectorstore(self, latest_recording_json: Dict) -> None:
+        task_question = latest_recording_json["task_question"]
+        doc = Document(page_content=json.dumps(latest_recording_json), metadata={"task_question": task_question})
+        self._vectorstore.add_documents([doc])
+        
+    def run(self, state: State) -> str:
+        latest_recording_screenshots, latest_recording_json = self._load_latest_recording_data()
+        user_query = state["user_query"]
+        del latest_recording_json["userInteraction_recording"][0]
+        for i, step_info in tqdm(
+            enumerate(latest_recording_json["userInteraction_recording"], start=0)
+            ,desc="thinking action steps.."
+            ):
+            step = i
+            step_text = step_info["Actual_Interaction"]
+            print(step, step_text)
+            before_image_url = self._local_image_to_data_url(latest_recording_screenshots[i])
+            after_image_url = self._local_image_to_data_url(latest_recording_screenshots[min(i+1, len(latest_recording_screenshots)-1)])
+            
+            step_description: str = self._llm_service.run(
+                user_query=user_query,
+                before_image_url=before_image_url,
+                after_image_url=after_image_url,
+                step_text=step_text,
+                step=step,
+            )
+            latest_recording_json["userInteraction_recording"][i]["llm_result"] = step_description
+        self._store_to_vectorstore(latest_recording_json)
+        with open(f"../data/userInteraction_recording/llm_result.json", "w", encoding="utf-8") as f:
+            json.dump(latest_recording_json, f, ensure_ascii=False, indent=4)
