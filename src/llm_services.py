@@ -20,6 +20,14 @@ from typing import Optional
 from browser_use import Agent
 from browser_use.browser.browser import Browser, BrowserConfig
 from browser_use.browser.context import BrowserContextConfig
+from browser_use import Controller, ActionResult
+# Initialize the controller
+controller = Controller()
+
+@controller.action('Ask user for information')
+def ask_human(question: str) -> str:
+    answer = input(f'\n{question}\nInput: ')
+    return ActionResult(extracted_content=answer)
 
 
 class BaseLLMService(ABC):
@@ -148,6 +156,7 @@ class BrowserUseLLMService(BaseLLMService):
             save_conversation_path=r"..\data\logs\browser_use_conversation",
             browser=self._browser,
             extend_system_message=state["web_manual"],
+            controller=controller,
         )
         result = await agent.run(max_steps=25)
 
