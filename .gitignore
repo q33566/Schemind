@@ -17,3 +17,4 @@ dev.ipynb
 chroma/
 data/
 experiment_files_db/
+*.txt
