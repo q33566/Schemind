@@ -9,32 +9,35 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 
+
 # 設置log
 def setup_logger(folder_path: str):
-    log_file_path = os.path.join(folder_path, 'agent.log')
+    log_file_path = os.path.join(folder_path, "agent.log")
 
     logger = logging.getLogger()
     for handler in logger.handlers[:]:
         logger.removeHandler(handler)
         handler.close()
 
-    handler = logging.FileHandler(log_file_path, mode='a', encoding='utf-8')
-    formatter = logging.Formatter('%(levelname)s - %(message)s')
+    handler = logging.FileHandler(log_file_path, mode="a", encoding="utf-8")
+    formatter = logging.Formatter("%(levelname)s - %(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
+
 
 # 使用者操作紀錄 ------------------------------------------------------
 def driver_config():
     options = webdriver.ChromeOptions()
     options.add_experimental_option(
-        "prefs", {
-            "plugins.always_open_pdf_externally": True
-        }
+        "prefs", {"plugins.always_open_pdf_externally": True}
     )
-    options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+    options.add_argument(
+        "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+    )
     options.add_argument("disable-blink-features=AutomationControlled")
     return options
+
 
 def inject_script(driver_task):
     driver_task.execute_script("""
@@ -270,6 +273,7 @@ def inject_script(driver_task):
         })();
     """)
 
+
 def safe_inject(driver_task):
     while True:
         try:
@@ -277,7 +281,9 @@ def safe_inject(driver_task):
             WebDriverWait(driver_task, 10).until(
                 lambda d: d.execute_script("return document.readyState") == "complete"
             )
-            injected = driver_task.execute_script("return window.__userInteractionInjected__ === true;")
+            injected = driver_task.execute_script(
+                "return window.__userInteractionInjected__ === true;"
+            )
             if not injected:
                 inject_script(driver_task)
             break
@@ -285,15 +291,19 @@ def safe_inject(driver_task):
             logging.warning(f"Failed to inject script: {e}")
             time.sleep(2.5)
 
+
 def get_user_interactions(driver_task):
-    """ 從 Selenium 瀏覽器取得使用者互動紀錄 """
+    """從 Selenium 瀏覽器取得使用者互動紀錄"""
     try:
-        interactions = driver_task.execute_script("return window.userInteractions || [];")
+        interactions = driver_task.execute_script(
+            "return window.userInteractions || [];"
+        )
     except Exception as e:
         logging.warning(f"Failed to get user interactions: {e}")
         return []
 
     return interactions
+
 
 def clear_userInteractions(driver_task):
     try:
@@ -306,11 +316,12 @@ def clear_userInteractions(driver_task):
     except Exception as e:
         logging.warning(f"Failed to reset user interactions: {e}")
 
+
 def inject_ok_prompt(driver):
     """
     注入 JavaScript 腳本，為整個網頁介面添加綠色外框，並添加四個覆蓋層用於檢測邊框點擊。
     外框和覆蓋層都使用固定定位，確保它們不會隨著頁面滾動而移動。
-    
+
     Args:
         driver: Selenium WebDriver 實例
     """
@@ -382,30 +393,36 @@ def inject_ok_prompt(driver):
     except Exception as e:
         logging.error(f"Failed to inject green border and overlay: {e}")
 
-def userInteraction_to_json_preprocessing(it, interaction, interaction_execution_url, json_recording):
-    if interaction['type'] == 'click':
-        if 'text' in interaction and interaction['text']:
-            clear_record = f"Click on element with text \"{interaction['text']}\""
+
+def userInteraction_to_json_preprocessing(
+    it, interaction, interaction_execution_url, json_recording
+):
+    if interaction["type"] == "click":
+        if "text" in interaction and interaction["text"]:
+            clear_record = f'Click on element with text "{interaction["text"]}"'
         else:
             clear_record = f"Click on {interaction['target']} at position ({interaction['x']}, {interaction['y']})"
-    
-    elif interaction['type'] == 'input':
-        clear_record = f"Input \"{interaction['value']}\" into {interaction['target']}"
 
-    elif interaction['type'] == 'scroll':
+    elif interaction["type"] == "input":
+        clear_record = f'Input "{interaction["value"]}" into {interaction["target"]}'
+
+    elif interaction["type"] == "scroll":
         clear_record = f"Scroll {interaction['action']} with total_distance: {interaction['total_scroll_distance']}"
-    
-    elif interaction['type'] == 'navigation':
+
+    elif interaction["type"] == "navigation":
         clear_record = f"Go back to {interaction['url']}"
-    
+
     else:
         clear_record = "unknown interaction"
 
-    json_recording["userInteraction_recording"].append({
-        "Interaction_Step": it,
-        "Actual_Interaction": clear_record,
-        "Executed_On_URL": interaction_execution_url
-    })
+    json_recording["userInteraction_recording"].append(
+        {
+            "Interaction_Step": it,
+            "Actual_Interaction": clear_record,
+            "Executed_On_URL": interaction_execution_url,
+        }
+    )
+
 
 def userInteractions_recording(start_web, json_recording, record_dir):
     screenshot_dir = os.path.join(record_dir, "screenshot_recording")
@@ -423,11 +440,13 @@ def userInteractions_recording(start_web, json_recording, record_dir):
 
     # 點擊 body 觸發互動
     try:
-        driver_task.find_element(By.TAG_NAME, 'body').click()
+        driver_task.find_element(By.TAG_NAME, "body").click()
     except:
         pass
     # 防止按空白鍵自動捲動頁面
-    driver_task.execute_script("""window.onkeydown = function(e) {if(e.keyCode == 32 && e.target.type != 'text' && e.target.type != 'textarea') {e.preventDefault();}};""")
+    driver_task.execute_script(
+        """window.onkeydown = function(e) {if(e.keyCode == 32 && e.target.type != 'text' && e.target.type != 'textarea') {e.preventDefault();}};"""
+    )
 
     it = 0
     current_url = None
@@ -437,9 +456,15 @@ def userInteractions_recording(start_web, json_recording, record_dir):
     finish_recording = False
 
     # 紀錄起始網站
-    logging.info(f'Start from website at {start_web}.')
-    json_recording["userInteraction_recording"].append({"Interaction_Step": it, "Actual_Interaction": f"Start from the website at {start_web}.", "Executed_On_URL": "None URL"})
-    
+    logging.info(f"Start from website at {start_web}.")
+    json_recording["userInteraction_recording"].append(
+        {
+            "Interaction_Step": it,
+            "Actual_Interaction": f"Start from the website at {start_web}.",
+            "Executed_On_URL": "None URL",
+        }
+    )
+
     # Iteration 互動迴圈
     while True:
         if finish_recording:
@@ -462,7 +487,7 @@ def userInteractions_recording(start_web, json_recording, record_dir):
                 time.sleep(0.5)
 
         # 擷取螢幕截圖
-        img_path = os.path.join(screenshot_dir, 'screenshot_{}.png'.format(it))
+        img_path = os.path.join(screenshot_dir, "screenshot_{}.png".format(it))
         driver_task.save_screenshot(img_path)
 
         # 注入 JavaScript 監聽用戶行為
@@ -475,10 +500,10 @@ def userInteractions_recording(start_web, json_recording, record_dir):
             scroll_buffer_action = None
             scroll_buffer_url = None
             current_url = driver_task.current_url
-        
+
         # 等待用户交互並記錄
         if it_output:
-            logging.info(f'UserInteraction: {it}')
+            logging.info(f"UserInteraction: {it}")
         interactions = []
         while not interactions:
             safe_inject(driver_task)
@@ -486,23 +511,42 @@ def userInteractions_recording(start_web, json_recording, record_dir):
 
             # 檢查是否完成紀錄要退出迴圈
             try:
-                exit_loop = driver_task.execute_script("return window.exitInteractionLoop === true;")
+                exit_loop = driver_task.execute_script(
+                    "return window.exitInteractionLoop === true;"
+                )
                 if exit_loop:
                     # 檢查還有沒有buffer要輸出
                     if scroll_buffer_action:
-                        scroll_action = {'type': 'scroll', 'action': scroll_buffer_action, 'total_scroll_distance': (scrollY_buffer - scrollY_base)}
+                        scroll_action = {
+                            "type": "scroll",
+                            "action": scroll_buffer_action,
+                            "total_scroll_distance": (scrollY_buffer - scrollY_base),
+                        }
                         logging.info(f"User interaction: {scroll_action}")
                         logging.info(f"Interaction is executed on {scroll_buffer_url}")
-                        userInteraction_to_json_preprocessing(it=it, interaction=scroll_action, interaction_execution_url=scroll_buffer_url, json_recording=json_recording)
+                        userInteraction_to_json_preprocessing(
+                            it=it,
+                            interaction=scroll_action,
+                            interaction_execution_url=scroll_buffer_url,
+                            json_recording=json_recording,
+                        )
                         scrollY_base = scrollY_buffer
                         scroll_buffer_action = None
-                        
+
                         # for new interaction
                         it += 1
-                        logging.info(f'UserInteraction: {it}')
+                        logging.info(f"UserInteraction: {it}")
                     # 結束
-                    logging.info("########## Finish userInteractions recording ##########")
-                    json_recording["userInteraction_recording"].append({"Interaction_Step": it, "Actual_Interaction": f"Task Completed", "Executed_On_URL": current_url})
+                    logging.info(
+                        "########## Finish userInteractions recording ##########"
+                    )
+                    json_recording["userInteraction_recording"].append(
+                        {
+                            "Interaction_Step": it,
+                            "Actual_Interaction": f"Task Completed",
+                            "Executed_On_URL": current_url,
+                        }
+                    )
                     driver_task.quit()
                     finish_recording = True
                     break
@@ -517,39 +561,74 @@ def userInteractions_recording(start_web, json_recording, record_dir):
             scroll_interaction_count = 0
             for interaction in interactions:
                 # 輸入紀錄buffer
-                if interaction['type'] == 'input':
+                if interaction["type"] == "input":
                     typeinput_buffer = interaction
                     typeinput_buffer_url = driver_task.current_url
                     type_interaction_count += 1
-                
+
                 # 滑動紀錄buffer
-                elif interaction['type'] == 'scroll' and (scroll_buffer_action==None or (scroll_buffer_action=='down' and interaction['scrollY']>=scrollY_buffer) or (scroll_buffer_action=='up' and interaction['scrollY']<=scrollY_buffer)):
-                    if interaction['scrollY'] > scrollY_base:
-                        scroll_buffer_action = 'down'
-                    elif interaction['scrollY'] < scrollY_base:
-                        scroll_buffer_action = 'up'
-                    
-                    scrollY_buffer = interaction['scrollY']
+                elif interaction["type"] == "scroll" and (
+                    scroll_buffer_action == None
+                    or (
+                        scroll_buffer_action == "down"
+                        and interaction["scrollY"] >= scrollY_buffer
+                    )
+                    or (
+                        scroll_buffer_action == "up"
+                        and interaction["scrollY"] <= scrollY_buffer
+                    )
+                ):
+                    if interaction["scrollY"] > scrollY_base:
+                        scroll_buffer_action = "down"
+                    elif interaction["scrollY"] < scrollY_base:
+                        scroll_buffer_action = "up"
+
+                    scrollY_buffer = interaction["scrollY"]
                     scroll_buffer_url = driver_task.current_url
                     scroll_interaction_count += 1
 
                 # 滑動方向變換輸出
-                elif interaction['type'] == 'scroll' and ((scroll_buffer_action=='down' and interaction['scrollY']<scrollY_buffer) or (scroll_buffer_action=='up' and interaction['scrollY']>scrollY_buffer)):
+                elif interaction["type"] == "scroll" and (
+                    (
+                        scroll_buffer_action == "down"
+                        and interaction["scrollY"] < scrollY_buffer
+                    )
+                    or (
+                        scroll_buffer_action == "up"
+                        and interaction["scrollY"] > scrollY_buffer
+                    )
+                ):
                     # buffer輸出
                     if typeinput_buffer:
                         logging.info(f"User interaction: {typeinput_buffer}")
-                        logging.info(f"Interaction is executed on {typeinput_buffer_url}")
-                        userInteraction_to_json_preprocessing(it=it, interaction=typeinput_buffer, interaction_execution_url=typeinput_buffer_url, json_recording=json_recording)
+                        logging.info(
+                            f"Interaction is executed on {typeinput_buffer_url}"
+                        )
+                        userInteraction_to_json_preprocessing(
+                            it=it,
+                            interaction=typeinput_buffer,
+                            interaction_execution_url=typeinput_buffer_url,
+                            json_recording=json_recording,
+                        )
                         typeinput_buffer = None
-                        
+
                         # for new interaction
                         it += 1
-                        logging.info(f'UserInteraction: {it}')
-                    
-                    scroll_action = {'type': 'scroll', 'action': scroll_buffer_action, 'total_scroll_distance': (scrollY_buffer - scrollY_base)}
+                        logging.info(f"UserInteraction: {it}")
+
+                    scroll_action = {
+                        "type": "scroll",
+                        "action": scroll_buffer_action,
+                        "total_scroll_distance": (scrollY_buffer - scrollY_base),
+                    }
                     logging.info(f"User interaction: {scroll_action}")
                     logging.info(f"Interaction is executed on {scroll_buffer_url}")
-                    userInteraction_to_json_preprocessing(it=it, interaction=scroll_action, interaction_execution_url=scroll_buffer_url, json_recording=json_recording)
+                    userInteraction_to_json_preprocessing(
+                        it=it,
+                        interaction=scroll_action,
+                        interaction_execution_url=scroll_buffer_url,
+                        json_recording=json_recording,
+                    )
 
                     scrollY_base = scrollY_buffer
                     scroll_buffer_action = None
@@ -557,80 +636,143 @@ def userInteractions_recording(start_web, json_recording, record_dir):
 
                 # 其他輸出
                 else:
-                    if interaction['type'] in ['click', 'navigation']:
+                    if interaction["type"] in ["click", "navigation"]:
                         # buffer輸出
                         if typeinput_buffer:
                             logging.info(f"User interaction: {typeinput_buffer}")
-                            logging.info(f"Interaction is executed on {typeinput_buffer_url}")
-                            userInteraction_to_json_preprocessing(it=it, interaction=typeinput_buffer, interaction_execution_url=typeinput_buffer_url, json_recording=json_recording)
+                            logging.info(
+                                f"Interaction is executed on {typeinput_buffer_url}"
+                            )
+                            userInteraction_to_json_preprocessing(
+                                it=it,
+                                interaction=typeinput_buffer,
+                                interaction_execution_url=typeinput_buffer_url,
+                                json_recording=json_recording,
+                            )
                             typeinput_buffer = None
-                            
+
                             # for new interaction
                             it += 1
-                            logging.info(f'UserInteraction: {it}')
-                        
+                            logging.info(f"UserInteraction: {it}")
+
                         elif scroll_buffer_action:
-                            scroll_action = {'type': 'scroll', 'action': scroll_buffer_action, 'total_scroll_distance': (scrollY_buffer - scrollY_base)}
+                            scroll_action = {
+                                "type": "scroll",
+                                "action": scroll_buffer_action,
+                                "total_scroll_distance": (
+                                    scrollY_buffer - scrollY_base
+                                ),
+                            }
                             logging.info(f"User interaction: {scroll_action}")
-                            logging.info(f"Interaction is executed on {scroll_buffer_url}")
-                            userInteraction_to_json_preprocessing(it=it, interaction=scroll_action, interaction_execution_url=scroll_buffer_url, json_recording=json_recording)
+                            logging.info(
+                                f"Interaction is executed on {scroll_buffer_url}"
+                            )
+                            userInteraction_to_json_preprocessing(
+                                it=it,
+                                interaction=scroll_action,
+                                interaction_execution_url=scroll_buffer_url,
+                                json_recording=json_recording,
+                            )
                             scrollY_base = scrollY_buffer
                             scroll_buffer_action = None
-                            
+
                             # for new interaction
                             it += 1
-                            logging.info(f'UserInteraction: {it}')
-                    
+                            logging.info(f"UserInteraction: {it}")
+
                     logging.info(f"User interaction: {interaction}")
                     logging.info(f"Interaction is executed on {current_url}")
-                    userInteraction_to_json_preprocessing(it=it, interaction=interaction, interaction_execution_url=current_url, json_recording=json_recording)
+                    userInteraction_to_json_preprocessing(
+                        it=it,
+                        interaction=interaction,
+                        interaction_execution_url=current_url,
+                        json_recording=json_recording,
+                    )
                     it_output = True
-            
+
             # 清空userInteractions
             if len(interactions) != 0:
                 clear_userInteractions(driver_task)
-            
+
             # 打字或滑動buffer處理
-            if (not it_output) and ((type_interaction_count != 0 and type_interaction_count == len(interactions)) or (scroll_interaction_count != 0 and scroll_interaction_count == len(interactions))):
-                img_path = os.path.join(screenshot_dir, 'screenshot_{}.png'.format(it+1))
+            if (not it_output) and (
+                (
+                    type_interaction_count != 0
+                    and type_interaction_count == len(interactions)
+                )
+                or (
+                    scroll_interaction_count != 0
+                    and scroll_interaction_count == len(interactions)
+                )
+            ):
+                img_path = os.path.join(
+                    screenshot_dir, "screenshot_{}.png".format(it + 1)
+                )
                 driver_task.save_screenshot(img_path)
                 interactions = []
-            
+
             # 跳轉頁面
             if driver_task.current_url != current_url and not it_output:
                 # logging.info(f"SPECIAL: {it}, {driver_task.current_url}")
-                driver_task.execute_script("localStorage.setItem('pendingPopstateInteraction', 'null');")
+                driver_task.execute_script(
+                    "localStorage.setItem('pendingPopstateInteraction', 'null');"
+                )
                 safe_inject(driver_task)
                 interactions = get_user_interactions(driver_task)
                 if interactions:
                     for interaction in interactions:
-                        if interaction['type'] in ['click', 'navigation']:
+                        if interaction["type"] in ["click", "navigation"]:
                             # buffer輸出
                             if typeinput_buffer:
                                 logging.info(f"User interaction: {typeinput_buffer}")
-                                logging.info(f"Interaction is executed on {typeinput_buffer_url}")
-                                userInteraction_to_json_preprocessing(it=it, interaction=typeinput_buffer, interaction_execution_url=typeinput_buffer_url, json_recording=json_recording)
+                                logging.info(
+                                    f"Interaction is executed on {typeinput_buffer_url}"
+                                )
+                                userInteraction_to_json_preprocessing(
+                                    it=it,
+                                    interaction=typeinput_buffer,
+                                    interaction_execution_url=typeinput_buffer_url,
+                                    json_recording=json_recording,
+                                )
                                 typeinput_buffer = None
-                                
+
                                 # for new interaction
                                 it += 1
-                                logging.info(f'UserInteraction: {it}')
-                            
+                                logging.info(f"UserInteraction: {it}")
+
                             elif scroll_buffer_action:
-                                scroll_action = {'type': 'scroll', 'action': scroll_buffer_action, 'total_scroll_distance': (scrollY_buffer - scrollY_base)}
+                                scroll_action = {
+                                    "type": "scroll",
+                                    "action": scroll_buffer_action,
+                                    "total_scroll_distance": (
+                                        scrollY_buffer - scrollY_base
+                                    ),
+                                }
                                 logging.info(f"User interaction: {scroll_action}")
-                                logging.info(f"Interaction is executed on {scroll_buffer_url}")
-                                userInteraction_to_json_preprocessing(it=it, interaction=scroll_action, interaction_execution_url=scroll_buffer_url, json_recording=json_recording)
+                                logging.info(
+                                    f"Interaction is executed on {scroll_buffer_url}"
+                                )
+                                userInteraction_to_json_preprocessing(
+                                    it=it,
+                                    interaction=scroll_action,
+                                    interaction_execution_url=scroll_buffer_url,
+                                    json_recording=json_recording,
+                                )
                                 scrollY_base = scrollY_buffer
                                 scroll_buffer_action = None
-                                
+
                                 # for new interaction
                                 it += 1
-                                logging.info(f'UserInteraction: {it}')
-                            
+                                logging.info(f"UserInteraction: {it}")
+
                             logging.info(f"User interaction: {interaction}")
                             logging.info(f"Interaction is executed on {current_url}")
-                            userInteraction_to_json_preprocessing(it=it, interaction=interaction, interaction_execution_url=current_url, json_recording=json_recording)
+                            userInteraction_to_json_preprocessing(
+                                it=it,
+                                interaction=interaction,
+                                interaction_execution_url=current_url,
+                                json_recording=json_recording,
+                            )
                             it_output = True
                     # 清空userInteractions
                     clear_userInteractions(driver_task)
@@ -638,8 +780,12 @@ def userInteractions_recording(start_web, json_recording, record_dir):
 
     # 最終記錄到json中
     print("Recording finished. Saving to JSON...")
-    with open(os.path.join(record_dir, "Interactions_recording.json"), 'w', encoding='utf-8') as record_file:
+    with open(
+        os.path.join(record_dir, "Interactions_recording.json"), "w", encoding="utf-8"
+    ) as record_file:
         json.dump(json_recording, record_file, indent=4, ensure_ascii=False)
+
+
 # --------------------------------------------------------------------
 
 # Agent推斷操作背後的邏輯或原因 ----------------------------------------
@@ -674,7 +820,7 @@ def userInteractions_recording(start_web, json_recording, record_dir):
 #                     ]
 #                 }
 #                 clipped_messages.append(clipped_msg)
-                
+
 #     return clipped_messages
 
 # def format_msg(it, step_text, before_imgb64, after_imgb64):
@@ -832,37 +978,42 @@ def userInteractions_recording(start_web, json_recording, record_dir):
 #         if i == (len(steps) - 1):
 #             break
 #         i += 1
-    
+
 #     # 最終記錄到json中
 #     with open(os.path.join(record_dir, "Interactions_recording_with_reason.json"), 'w', encoding='utf-8') as record_file:
 #         json.dump(json_recording, record_file, indent=4, ensure_ascii=False)
 # --------------------------------------------------------------------
 
+
 def run_recorder(state):
-    
-    task_ques: str = state["user_query"]# "Find Kevin Durant's bio"
+    task_ques: str = state["user_query"]  # "Find Kevin Durant's bio"
     start_web: str = "https://www.google.com/"
     base_record_data_dir: Path = Path("../data/userInteraction_recording")
     base_record_data_dir.mkdir(parents=True, exist_ok=True)
-    recording_index: int = len([path for path in base_record_data_dir.iterdir() if path.is_dir()])
+    recording_index: int = len(
+        [path for path in base_record_data_dir.iterdir() if path.is_dir()]
+    )
     task_dir: Path = base_record_data_dir / f"recording_{recording_index}"
     task_dir.mkdir(exist_ok=True)
     setup_logger(str(task_dir))
-    logging.info(f'########## {task_ques} ##########')
+    logging.info(f"########## {task_ques} ##########")
     json_recording = {"task_question": task_ques, "userInteraction_recording": []}
 
     # 記錄使用者操作
-    userInteractions_recording(start_web=start_web, json_recording=json_recording, record_dir=task_dir)
+    userInteractions_recording(
+        start_web=start_web, json_recording=json_recording, record_dir=task_dir
+    )
 
     # Agent推斷操作邏輯
     # ActionReasoning_Agent_thinking(record_dir=task_dir)
 
-    logging.info(f'########## Finish ##########')
-    print('End of process')
+    logging.info(f"########## Finish ##########")
+    print("End of process")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     state = {
         "recording_task_ques": "Find Kevin Durant's bio",
-        "recording_start_web": "https://www.google.com/"
+        "recording_start_web": "https://www.google.com/",
     }
     run_recorder(state=state)

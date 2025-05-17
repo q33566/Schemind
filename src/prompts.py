@@ -30,6 +30,7 @@ class FileDescriptorPrompt:
         ]
     )
 
+
 @dataclass
 class FileRetrieverLLMServicePrompt:
     _system_prompt: str = dedent(
@@ -58,6 +59,7 @@ class FileRetrieverLLMServicePrompt:
     prompt_template = ChatPromptTemplate(
         [("system", _system_prompt), ("user", _user_prompt)]
     )
+
 
 @dataclass
 class DispatcherPrompt:
@@ -96,6 +98,7 @@ class DispatcherPrompt:
         [("system", _system_prompt), ("user", _user_prompt)]
     )
 
+
 @dataclass
 class WebManualLLMServicePrompt:
     _system_prompt: str = dedent(
@@ -103,6 +106,7 @@ class WebManualLLMServicePrompt:
     You are a web manual assistant. Your task is to provide clear and actionable 
     user instructions based on the content of the website manual. 
     The instructions should summarize how to operate or use the system effectively.
+    You must provide important url. If the user find the answer on specific url. You must provide that url.
     """
     ).strip()
 
@@ -118,8 +122,10 @@ class WebManualLLMServicePrompt:
         [("system", _system_prompt), ("user", _user_prompt)]
     )
 
+
 from langchain_core.prompts import ChatPromptTemplate
 from textwrap import dedent
+
 
 class ActionReasoningPrompt:
     _system_prompt: str = dedent("""
@@ -159,25 +165,33 @@ class ActionReasoningPrompt:
         - Two screenshots (before & after)
     """).strip()
 
-    prompt_template = ChatPromptTemplate.from_messages([
-        {"role": "system", "content": _system_prompt},
-        {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": "The Task Goal is: {user_query}."},
-                {"type": "text", "text": "You will receive each operation step one by one to reason how each operation helps complete this task."},
-                {"type": "text", "text": "Now analyzing action step {step}."},
-                {"type": "text", "text": "Action Description: \"{step_text}\""},
-                {"type": "text", "text": "1. Screenshot BEFORE the action:"},
-                {"type": "image_url", "image_url": {"url": "{before_image_url}"}},
-                {"type": "text", "text": "2. Screenshot AFTER the action:"},
-                {"type": "image_url", "image_url": {"url": "{after_image_url}"}},
-                {"type": "text", "text": "Please carefully infer the reasoning and intention behind this step based on the available information."}
-            ]
-        }
-    ])
+    prompt_template = ChatPromptTemplate.from_messages(
+        [
+            {"role": "system", "content": _system_prompt},
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "The Task Goal is: {user_query}."},
+                    {
+                        "type": "text",
+                        "text": "You will receive each operation step one by one to reason how each operation helps complete this task.",
+                    },
+                    {"type": "text", "text": "Now analyzing action step {step}."},
+                    {"type": "text", "text": 'Action Description: "{step_text}"'},
+                    {"type": "text", "text": "1. Screenshot BEFORE the action:"},
+                    {"type": "image_url", "image_url": {"url": "{before_image_url}"}},
+                    {"type": "text", "text": "2. Screenshot AFTER the action:"},
+                    {"type": "image_url", "image_url": {"url": "{after_image_url}"}},
+                    {
+                        "type": "text",
+                        "text": "Please carefully infer the reasoning and intention behind this step based on the available information.",
+                    },
+                ],
+            },
+        ]
+    )
 
-    
+
 @dataclass
 class MessageSenderPrompt:
     _system_prompt: str = dedent(
@@ -194,7 +208,26 @@ class MessageSenderPrompt:
         Please send the message according to the user's query. also find the corresponding email address from the context.
         """
     ).strip()
-    
+
+    prompt_template = ChatPromptTemplate(
+        [("system", _system_prompt), ("user", _user_prompt)]
+    )
+
+
+class SummarizerPrompt:
+    _system_prompt: str = dedent(
+        """
+        Base on the extracted information and user query. Answer the user question.
+        """
+    )
+
+    _user_prompt: str = dedent(
+        """
+        user query: {user_query}
+        extracted information: {extracted_content}
+        """
+    )
+
     prompt_template = ChatPromptTemplate(
         [("system", _system_prompt), ("user", _user_prompt)]
     )

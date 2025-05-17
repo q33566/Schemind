@@ -8,7 +8,8 @@ from prompts import (
     DispatcherPrompt,
     WebManualLLMServicePrompt,
     MessageSenderPrompt,
-    ActionReasoningPrompt
+    ActionReasoningPrompt,
+    SummarizerPrompt
 )
 from markitdown import MarkItDown
 from langchain_core.runnables import RunnablePassthrough, RunnableMap, RunnableLambda
@@ -149,9 +150,8 @@ class BrowserUseLLMService(BaseLLMService):
             browser=self._browser,
             extend_system_message=state["web_manual"],
         )
-        history  = await agent.run(max_steps=25)
+        history = await agent.run(max_steps=25)
         return history
-        
 
 
 class DispatcherLLMService(BaseLLMService):
@@ -220,17 +220,27 @@ class MessageSenderLLMService(BaseLLMService):
         self._tools = [send_email_with_attachment]
         self._llm = self._llm.bind_tools(self._tools)
         self._chain = self._prompt | self._llm
-        
-    def run(self, retriever: VectorStoreRetriever, user_query: str, file_path: str) -> str:
-        chain = RunnableMap({
-            "context": RunnableLambda(lambda x: retriever.invoke(x["user_query"])),  # retriever 只拿到 user_query
-            "user_query": lambda x: x["user_query"],
-            "file_path": lambda x: x["file_path"]
-        }) | self._chain
+
+    def run(
+        self, retriever: VectorStoreRetriever, user_query: str, file_path: str
+    ) -> str:
+        chain = (
+            RunnableMap(
+                {
+                    "context": RunnableLambda(
+                        lambda x: retriever.invoke(x["user_query"])
+                    ),  # retriever 只拿到 user_query
+                    "user_query": lambda x: x["user_query"],
+                    "file_path": lambda x: x["file_path"],
+                }
+            )
+            | self._chain
+        )
         result = chain.invoke({"user_query": user_query, "file_path": file_path})
         args = result.tool_calls[0]["args"]
         return args
-    
+
+
 class ActionReasoningLLMService(BaseLLMService):
     class OutputFormat(BaseModel):
         reasoning: str = Field(
@@ -243,14 +253,33 @@ class ActionReasoningLLMService(BaseLLMService):
         super().__init__(llm, self.OutputFormat, name=self.__class__.__name__)
         self._prompt: ChatPromptTemplate = ActionReasoningPrompt.prompt_template
         self._chain = self._prompt | self._llm
-        
-    def run(self, user_query: str, before_image_url, after_image_url, step, step_text) -> str:
-        result: ActionReasoningLLMService.OutputFormat = self._chain.invoke({
-            "before_image_url": before_image_url,
-            "after_image_url": after_image_url,
-            "step": step,
-            "step_text": step_text,
-            "user_query": user_query,
-        })
+
+    def run(
+        self, user_query: str, before_image_url, after_image_url, step, step_text
+    ) -> str:
+        result: ActionReasoningLLMService.OutputFormat = self._chain.invoke(
+            {
+                "before_image_url": before_image_url,
+                "after_image_url": after_image_url,
+                "step": step,
+                "step_text": step_text,
+                "user_query": user_query,
+            }
+        )
         return result.reasoning
-        
+
+
+class SummarizerLLMService(BaseLLMService):
+    def __init__(self, llm: BaseChatModel):
+        super().__init__(llm, name=self.__class__.__name__)
+        self._prompt: ChatPromptTemplate = SummarizerPrompt.prompt_template
+        self._chain = self._prompt | self._llm
+
+    def run(self, user_query: str, extracted_content: str) -> str:
+        result: str = self._chain.invoke(
+            {
+                "user_query": user_query,
+                "extracted_content": extracted_content,
+            }
+        )
+        return result
