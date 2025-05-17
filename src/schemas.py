@@ -16,6 +16,8 @@ class State(TypedDict):
     task_classification: Literal["file", "web", "web_record"]
     web_manual: str
     browser_use_is_done: bool
+    extracted_content: str
+    summarizer_answer: str
 
 
 class FileSnapshot(BaseModel):
