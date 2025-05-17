@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <title>Schemind Chat Interface</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Helvetica Neue", sans-serif;
+      background-color: #f5f7f8;
+    }
+
+    header {
+      background-color: #4ca5aa;
+      color: white;
+      padding: 12px 24px;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    header img {
+      width: 24px;
+      height: 24px;
+    }
+
+    #chat-window {
+      padding: 24px;
+      height: 80vh;
+      overflow-y: auto;
+    }
+
+    .message {
+      background: white;
+      padding: 12px 16px;
+      border-radius: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-bottom: 16px;
+      max-width: 600px;
+    }
+
+    .input-area {
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+      background: #ffffff;
+      box-shadow: 0 -1px 5px rgba(0,0,0,0.05);
+    }
+
+    .input-area input {
+      width: 70%;
+      padding: 12px 16px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    .button-container {
+      position: fixed;
+      bottom: 120px;
+      right: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .tooltip-button {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background-color: #4ca5aa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .tooltip-button img {
+      width: 28px;
+      height: 28px;
+    }
+
+    .tooltip-text {
+      visibility: hidden;
+      opacity: 0;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 6px 10px;
+      position: absolute;
+      right: 70px;
+      top: 50%;
+      transform: translateY(-50%);
+      white-space: nowrap;
+      transition: opacity 0.3s ease;
+    }
+
+    .tooltip-button:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <img src="https://cdn-icons-png.flaticon.com/512/3771/3771441.png" alt="logo">
+    <strong>Schemind</strong>
+  </header>
+
+  <main id="chat-window">
+    <!-- 對話訊息會被插入這裡 -->
+  </main>
+
+  <div class="input-area">
+    <input type="text" id="userInput" placeholder="Enter Query..." onkeydown="handleEnter(event)">
+  </div>
+
+  <!-- 右邊兩個浮動按鈕 -->
+  <div class="button-container">
+    <div class="tooltip-button">
+      <img src="https://cdn-icons-png.flaticon.com/512/337/337946.png" alt="File Icon" />
+      <div class="tooltip-text">添加文件進入機器人資料庫</div>
+    </div>
+
+    <div class="tooltip-button">
+      <img src="https://cdn-icons-png.flaticon.com/512/4712/4712100.png" alt="Bot Icon" />
+      <div class="tooltip-text">教導機器人他不會的任務</div>
+    </div>
+  </div>
+
+  <script>
+    function handleEnter(event) {
+      if (event.key === "Enter") {
+        const input = document.getElementById("userInput");
+        const message = input.value.trim();
+        if (message !== "") {
+          addMessage(message);
+          input.value = "";
+        }
+      }
+    }
+
+    function addMessage(text) {
+      const chatWindow = document.getElementById("chat-window");
+      const messageEl = document.createElement("div");
+      messageEl.className = "message";
+      messageEl.innerText = text;
+      chatWindow.insertBefore(messageEl, chatWindow.firstChild); // 插入到最上方
+    }
+  </script>
+
+</body>
+</html>
