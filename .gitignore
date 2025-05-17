@@ -18,3 +18,5 @@ data/
 experiment_files_db/
 test.py
 *.pdf
+*.json
+test.ipynb
