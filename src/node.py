@@ -5,6 +5,7 @@ from tqdm import tqdm
 import time
 import base64
 import json
+import requests
 from mimetypes import guess_type
 from typing import List, Dict, Tuple
 from llm_services import (
@@ -221,6 +222,7 @@ class FileRetriever(BaseService):
 
 
 class BrowserUse(BaseService):
+    
     def __init__(self, llm: BaseChatModel, planner_llm: BaseChatModel = None):
         super().__init__(name=self.__class__.__name__)
         self._browser_use_llm_service: BrowserUseLLMService = BrowserUseLLMService(
@@ -228,14 +230,27 @@ class BrowserUse(BaseService):
             planner_llm=planner_llm,
         )
 
+    def _download(self, url: str):
+        file_name = Path(url).name
+        file_path = Path("../data/mock_filesystem") / file_name
+        response = requests.get(url)
+        if response.status_code == 200:
+            with open(file_path, 'wb') as f:
+                f.write(response.content)
+            print(f"檔案已成功下載為 {file_path}")
+        else:
+            print(f"下載失敗，HTTP 狀態碼：{response.status_code}")
+    
     async def run(self, state: State) -> None:
         user_query = state["user_query"]
-        history = await self._browser_use_llm_service.run(
+        result, is_successful = await self._browser_use_llm_service.run(
             user_query=user_query, state=state
         )
+        if result.download_file_url:
+            self._download(result.download_file_url)
         return {
-            "browser_use_is_done": history.is_successful(),
-            "extracted_content": history.extracted_content(),
+            "browser_use_is_done": is_successful,
+            "extracted_content": result.extracted_content,
         }
 
 

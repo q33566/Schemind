@@ -55,9 +55,9 @@ file_retriever: FileRetriever = FileRetriever(
     vectorstore=vectorstore_filesystem_manager,
     llm=llm,
 )
-summarizer: Summarizer = Summarizer(
-    llm=llm
-)
+# summarizer: Summarizer = Summarizer(
+#     llm=llm
+# )
 dispatcher: Dispatcher = Dispatcher(llm=llm)
 
 browser_use: BrowserUse = BrowserUse(
@@ -76,10 +76,10 @@ recorder: UserActionRecorder = UserActionRecorder()
 graph_builder = StateGraph(State)
 graph_builder.add_node(browser_use.name, browser_use.run)
 graph_builder.add_node(webguider.name, webguider.run)
-graph_builder.add_node(summarizer.name, summarizer.run)
+#graph_builder.add_node(summarizer.name, summarizer.run)
 graph_builder.add_edge(START, webguider.name)
 graph_builder.add_edge(webguider.name, browser_use.name)
-graph_builder.add_edge(browser_use.name, summarizer.name)
+graph_builder.add_edge(browser_use.name, END)
 graph = graph_builder.compile()
 
 
@@ -90,7 +90,7 @@ async def main():
             "user_query": user_query,
         }
     )
-    print(f'result{output["summarizer_answer"].content}')
+    print(f'result{output["extracted_content"]}')
 
 
 if __name__ == "__main__":
