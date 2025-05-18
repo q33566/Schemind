@@ -50,7 +50,7 @@ def inject_script(driver_task):
                 console.log('[INFO] Injecting interaction listeners.');
                 
                 // 移除舊監聽器
-                ['click', 'input', 'scroll', 'popstate', 'pageshow', 'beforeunload', 'okPrompt'].forEach(type => {
+                ['click', 'input', 'scroll', 'popstate', 'pageshow', 'beforeunload', 'okPrompt', 'change'].forEach(type => {
                     let listener = window[`__${type}Listener`];
                     if (listener) {
                         if (type === 'popstate' || type === 'pageshow') {
@@ -74,7 +74,29 @@ def inject_script(driver_task):
                 const clickListener = function(event) {
                     if (event.__processed__) return;
                     const now = new Date().getTime();
-                    if (now - lastClickTimestamp < 50) return;
+                    if (now - lastClickTimestamp < 50) return; // 恢復 Old 版本的 50ms 間隔
+
+                    // 檢查是否為下拉選單相關元素，移除 [role="listbox"] 和 [role="option"]
+                    const isDropdown = event.target.closest('select, option, .dropdown, .dropdown-menu');
+                    if (isDropdown) {
+                        // 記錄 select/option 的點擊，但不干擾事件
+                        if (event.target.tagName === 'SELECT' || event.target.tagName === 'OPTION') {
+                            let target = event.target;
+                            let interaction = {
+                                type: 'click',
+                                target: target.tagName,
+                                id: target.id,
+                                class: target.className,
+                                text: (target.innerText || target.value || '').slice(0, 100),
+                                x: event.clientX,
+                                y: event.clientY
+                            };
+                            window.userInteractions.push(interaction);
+                            sessionStorage.setItem('userInteractions', JSON.stringify(window.userInteractions));
+                        }
+                        return; // 不做任何處理，確保下拉選單正常展開
+                    }
+
                     lastClickTimestamp = now;
                     event.__processed__ = true;
 
@@ -164,6 +186,23 @@ def inject_script(driver_task):
                 window.__scrollListener = scrollListener;
                 window.addEventListener('scroll', scrollListener);
 
+                const changeListener = function(event) {
+                    if (event.target.tagName === 'SELECT') {
+                        let interaction = {
+                            type: 'change',
+                            target: event.target.tagName,
+                            id: event.target.id,
+                            class: event.target.className,
+                            value: event.target.value.slice(0, 100),
+                            selectedText: (event.target.selectedOptions[0]?.text || '').slice(0, 100)
+                        };
+                        window.userInteractions.push(interaction);
+                        sessionStorage.setItem('userInteractions', JSON.stringify(window.userInteractions));
+                    }
+                };
+                window.__changeListener = changeListener;
+                document.addEventListener('change', changeListener, false);
+
                 const popstateListener = function(event) {
                     if (window.__processingPopstate__) {
                         console.log('[INFO] Ignoring popstate event during processing.');
@@ -175,7 +214,6 @@ def inject_script(driver_task):
                         action: 'back',
                         url: window.location.href
                     };
-                    // 避免重複記錄
                     if (!window.userInteractions.some(i => i.type === 'navigation' && i.url === interaction.url && Math.abs(new Date(i.timestamp) - new Date(interaction.timestamp)) < 100)) {
                         window.userInteractions.push(interaction);
                         sessionStorage.setItem('userInteractions', JSON.stringify(window.userInteractions));
@@ -185,7 +223,6 @@ def inject_script(driver_task):
                     setTimeout(() => {
                         window.__userInteractionInjected__ = false;
                         setupUserInteractionListener();
-                        window.__processingPopstate__ = false;
                     }, 300);
                 };
                 window.__popstateListener = popstateListener;
@@ -199,7 +236,6 @@ def inject_script(driver_task):
                             action: 'back',
                             url: window.location.href
                         };
-                        // 避免重複記錄
                         if (!window.userInteractions.some(i => i.type === 'navigation' && i.url === interaction.url && Math.abs(new Date(i.timestamp) - new Date(interaction.timestamp)) < 100)) {
                             window.userInteractions.push(interaction);
                             sessionStorage.setItem('userInteractions', JSON.stringify(window.userInteractions));
