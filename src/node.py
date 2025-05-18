@@ -14,7 +14,8 @@ from llm_services import (
     DispatcherLLMService,
     WebGuiderLLMService,
     MessageSenderLLMService,
-    ActionReasoningLLMService
+    ActionReasoningLLMService,
+    SummarizerLLMService,
 )
 from user_action_recorder_service import run_recorder
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -35,6 +36,7 @@ class BaseService(ABC):
     def run(self, *args, **kwargs):
         pass
 
+
 class Synchronizer(BaseService):
     def __init__(
         self,
@@ -50,7 +52,9 @@ class Synchronizer(BaseService):
         self._file_descriptor: FileDescriptor = FileDescriptor(
             llm=llm, max_content_length=max_content_length
         )
-        self._sleep_time_each_file_when_embedding: int = sleep_time_each_file_when_embedding
+        self._sleep_time_each_file_when_embedding: int = (
+            sleep_time_each_file_when_embedding
+        )
 
     def _get_last_modified_time(self, file: Path) -> int:
         """Get the last modified time of a file."""
@@ -173,7 +177,9 @@ class Synchronizer(BaseService):
 
         if need_update_files:
             documents: list[Document] = []
-            for file_snapshot in tqdm(need_update_files, desc="Creating files description"):
+            for file_snapshot in tqdm(
+                need_update_files, desc="Creating files description"
+            ):
                 content = self._file_descriptor.run(file_snapshot.file_name)
                 metadata = {
                     "file_name": file_snapshot.file_name,
@@ -181,8 +187,11 @@ class Synchronizer(BaseService):
                 }
                 time.sleep(4)
                 documents.append(Document(page_content=content, metadata=metadata))
-                self._vectorstore.add_documents([Document(page_content=content, metadata=metadata)]) 
+                self._vectorstore.add_documents(
+                    [Document(page_content=content, metadata=metadata)]
+                )
         return
+
 
 class FileRetriever(BaseService):
     def __init__(
@@ -193,8 +202,10 @@ class FileRetriever(BaseService):
         k: int = 10,
     ):
         super().__init__(name=self.__class__.__name__)
-        self._file_retriever_llm_service: FileRetrieverLLMService = FileRetrieverLLMService(
-            llm=llm,
+        self._file_retriever_llm_service: FileRetrieverLLMService = (
+            FileRetrieverLLMService(
+                llm=llm,
+            )
         )
         self._retriever = vectorstore.as_retriever(
             search_type=serch_type, search_kwargs={"k": k}
@@ -203,8 +214,11 @@ class FileRetriever(BaseService):
     def run(self, state: State) -> str:
         """Retrieve files from the vector database based on the query."""
         query = state["user_query"]
-        result: str = self._file_retriever_llm_service.run(user_query=query, retriever=self._retriever)
+        result: str = self._file_retriever_llm_service.run(
+            user_query=query, retriever=self._retriever
+        )
         return {"retrieved_file_path": result}
+
 
 class BrowserUse(BaseService):
     def __init__(self, llm: BaseChatModel, planner_llm: BaseChatModel = None):
@@ -216,7 +230,14 @@ class BrowserUse(BaseService):
 
     async def run(self, state: State) -> None:
         user_query = state["user_query"]
-        await self._browser_use_llm_service.run(user_query=user_query, state=state)
+        history = await self._browser_use_llm_service.run(
+            user_query=user_query, state=state
+        )
+        return {
+            "browser_use_is_done": history.is_successful(),
+            "extracted_content": history.extracted_content(),
+        }
+
 
 class Dispatcher(BaseService):
     def __init__(self, llm: BaseChatModel = None):
@@ -241,6 +262,7 @@ class Dispatcher(BaseService):
         task: str = self._llm_service.run(user_query=user_query)
         return {"task_classification": task}
 
+
 class WebGuider(BaseService):
     def __init__(
         self,
@@ -263,23 +285,24 @@ class WebGuider(BaseService):
             user_query=user_query, retriever=self._retriever
         )
         return {"web_manual": result}
-    
+
+
 class UserActionRecorder(BaseService):
     def __init__(self):
         super().__init__(name=self.__class__.__name__)
 
-
     def run(self, state: State) -> None:
         run_recorder(state=state)
-        
+
+
 class MessageSender(BaseService):
     def __init__(
-            self,
-            vectorstore: Chroma,
-            llm: BaseChatModel,
-            serch_type: str = "similarity",
-            k: int = 4,
-        ):
+        self,
+        vectorstore: Chroma,
+        llm: BaseChatModel,
+        serch_type: str = "similarity",
+        k: int = 4,
+    ):
         super().__init__(name=self.__class__.__name__)
         self._vectorstore = vectorstore
         self._llm_service: MessageSenderLLMService = MessageSenderLLMService(
@@ -291,10 +314,13 @@ class MessageSender(BaseService):
 
     def run(self, state: State) -> None:
         user_query: str = state["user_query"]
-        file_path: str = state["retrieved_file_path"] 
-        args: dict = self._llm_service.run(user_query=user_query, file_path=file_path, retriever=self._retriever)
+        file_path: str = state["retrieved_file_path"]
+        args: dict = self._llm_service.run(
+            user_query=user_query, file_path=file_path, retriever=self._retriever
+        )
         send_email_with_attachment.invoke(args)
-        
+
+
 class ActionReasoner(BaseService):
     def __init__(self, llm: BaseChatModel = None, vectorstore: Chroma = None):
         super().__init__(name=self.__class__.__name__)
@@ -307,25 +333,29 @@ class ActionReasoner(BaseService):
         mime_type, _ = guess_type(image_path)
         # Default to png
         if mime_type is None:
-            mime_type = 'image/png'
+            mime_type = "image/png"
 
         # Read and encode the image file
         with open(image_path, "rb") as image_file:
-            base64_encoded_data = base64.b64encode(image_file.read()).decode('utf-8')
+            base64_encoded_data = base64.b64encode(image_file.read()).decode("utf-8")
         # Construct the data URL
         return f"data:{mime_type};base64,{base64_encoded_data}"
-    
+
     def _get_latest_recording_dir(self) -> Path:
         root = Path(r"..\data\userInteraction_recording")
 
         recording_folders = [
             (int(p.name.split("_")[1]), p)
             for p in root.iterdir()
-            if p.is_dir() and p.name.startswith("recording_") and p.name.split("_")[1].isdigit()
+            if p.is_dir()
+            and p.name.startswith("recording_")
+            and p.name.split("_")[1].isdigit()
         ]
-        latest_recording: Path = max(recording_folders, key=lambda x: x[0])[1] if recording_folders else None
+        latest_recording: Path = (
+            max(recording_folders, key=lambda x: x[0])[1] if recording_folders else None
+        )
         return latest_recording
-    
+
     def _load_latest_recording_data(self) -> Tuple[List[Path], Dict]:
         latest = self._get_latest_recording_dir()
         if not latest:
@@ -334,7 +364,7 @@ class ActionReasoner(BaseService):
         screenshot_dir = latest / "screenshot_recording"
         screenshots = sorted(
             screenshot_dir.glob("screenshot_*.png"),
-            key=lambda p: int(p.stem.split("_")[1])
+            key=lambda p: int(p.stem.split("_")[1]),
         )
 
         json_path = latest / "Interactions_recording.json"
@@ -342,25 +372,37 @@ class ActionReasoner(BaseService):
             json_data = json.load(f)
 
         return screenshots, json_data
+
     def _store_to_vectorstore(self, latest_recording_json: Dict) -> None:
         task_question = latest_recording_json["task_question"]
-        doc = Document(page_content=json.dumps(latest_recording_json), metadata={"task_question": task_question})
+        doc = Document(
+            page_content=json.dumps(latest_recording_json),
+            metadata={"task_question": task_question},
+        )
         self._vectorstore.add_documents([doc])
-        
+
     def run(self, state: State) -> str:
-        latest_recording_screenshots, latest_recording_json = self._load_latest_recording_data()
+        latest_recording_screenshots, latest_recording_json = (
+            self._load_latest_recording_data()
+        )
         user_query = state["user_query"]
         del latest_recording_json["userInteraction_recording"][0]
         for i, step_info in tqdm(
-            enumerate(latest_recording_json["userInteraction_recording"], start=0)
-            ,desc="thinking action steps.."
-            ):
+            enumerate(latest_recording_json["userInteraction_recording"], start=0),
+            desc="thinking action steps..",
+        ):
             step = i
             step_text = step_info["Actual_Interaction"]
             print(step, step_text)
-            before_image_url = self._local_image_to_data_url(latest_recording_screenshots[i])
-            after_image_url = self._local_image_to_data_url(latest_recording_screenshots[min(i+1, len(latest_recording_screenshots)-1)])
-            
+            before_image_url = self._local_image_to_data_url(
+                latest_recording_screenshots[i]
+            )
+            after_image_url = self._local_image_to_data_url(
+                latest_recording_screenshots[
+                    min(i + 1, len(latest_recording_screenshots) - 1)
+                ]
+            )
+
             step_description: str = self._llm_service.run(
                 user_query=user_query,
                 before_image_url=before_image_url,
@@ -368,7 +410,27 @@ class ActionReasoner(BaseService):
                 step_text=step_text,
                 step=step,
             )
-            latest_recording_json["userInteraction_recording"][i]["llm_result"] = step_description
+            latest_recording_json["userInteraction_recording"][i]["llm_result"] = (
+                step_description
+            )
         self._store_to_vectorstore(latest_recording_json)
-        with open(f"../data/userInteraction_recording/llm_result.json", "w", encoding="utf-8") as f:
+        with open(
+            f"../data/userInteraction_recording/llm_result.json", "w", encoding="utf-8"
+        ) as f:
             json.dump(latest_recording_json, f, ensure_ascii=False, indent=4)
+
+
+class Summarizer(BaseService):
+    def __init__(self, llm: BaseChatModel = None):
+        super().__init__(name=self.__class__.__name__)
+        self._llm_service: SummarizerLLMService = SummarizerLLMService(
+            llm=llm,
+        )
+
+    def run(self, state: State):
+        user_query = state["user_query"]
+        extracted_content = state["extracted_content"]
+        result: str = self._llm_service.run(
+            user_query=user_query, extracted_content=extracted_content
+        )
+        return {"summarizer_answer": result}

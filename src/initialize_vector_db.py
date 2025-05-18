@@ -9,24 +9,32 @@ import json
 from dotenv import load_dotenv
 from typing import List, Optional, Dict, Any
 import os
+
 load_dotenv()
 
 
 from pydantic import BaseModel, Field, RootModel, EmailStr
 
+
 class Feature(BaseModel):
     title: str = Field(
-        ..., 
-        description="The name of the feature, e.g., 'Student Zone', 'Email Services'."
+        ...,
+        description="The name of the feature, e.g., 'Student Zone', 'Email Services'.",
     )
     description: str = Field(
-        ..., 
-        description="A detailed explanation of the feature, its purpose, and how it helps users."
+        ...,
+        description="A detailed explanation of the feature, its purpose, and how it helps users.",
     )
+
+
 class FeatureItem(BaseModel):
     feature: Feature = Field(..., description="An object containing feature details.")
+
+
 class FeatureList(RootModel[List[FeatureItem]]):
-    pass 
+    pass
+
+
 def store_web_user_manual_to_vector_db(delay: int = 4) -> Chroma:
     pdf_data_folder = Path("../data/pdf_data")
     web_data_folder = Path("../data/web_data")
@@ -40,28 +48,24 @@ def store_web_user_manual_to_vector_db(delay: int = 4) -> Chroma:
         embedding_function=embeddings,
         persist_directory=vectorstore_dir,
     )
-    
-    json_files: list[Path] = list(pdf_data_folder.glob("*.json")) + list(web_data_folder.glob("*.json"))
-    documents: list[Document] = []
-    for json_file in tqdm(json_files, desc="Processing JSON files", unit="file"):
-        with json_file.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-            featurelist = FeatureList.model_validate(data)
-        for idx, feature_item in enumerate(featurelist.root):
-            if isinstance(feature_item, FeatureItem):
-                content = f"{feature_item.feature.title}\n\n{feature_item.feature.description}"
-                metadata = {
-                    "source_file": json_file.name,
-                    "feature_index": idx,
-                    "title": feature_item.feature.title,
-                }
-                doc = Document(page_content=content, metadata=metadata)
-                documents.append(doc)
-    vectorstore.add_documents(documents)
 
-    
-
-
+    # json_files: list[Path] = list(pdf_data_folder.glob("*.json")) + list(web_data_folder.glob("*.json"))
+    # documents: list[Document] = []
+    # for json_file in tqdm(json_files, desc="Processing JSON files", unit="file"):
+    #     with json_file.open("r", encoding="utf-8") as f:
+    #         data = json.load(f)
+    #         featurelist = FeatureList.model_validate(data)
+    #     for idx, feature_item in enumerate(featurelist.root):
+    #         if isinstance(feature_item, FeatureItem):
+    #             content = f"{feature_item.feature.title}\n\n{feature_item.feature.description}"
+    #             metadata = {
+    #                 "source_file": json_file.name,
+    #                 "feature_index": idx,
+    #                 "title": feature_item.feature.title,
+    #             }
+    #             doc = Document(page_content=content, metadata=metadata)
+    #             documents.append(doc)
+    # vectorstore.add_documents(documents)
 
 
 class EmailContact(BaseModel):
@@ -69,11 +73,12 @@ class EmailContact(BaseModel):
     email: EmailStr = Field(..., description="The user's email address in valid format")
 
 class EmailContactList(RootModel[List[EmailContact]]):
-    pass    
-    
+    pass
+
+
 def store_email_contact_to_vector_db() -> Chroma:
     vectorstore_dir: str = "../data/email_contact_db"
-    #embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+    # embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
     embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
 
     vectorstore = Chroma(
@@ -84,7 +89,7 @@ def store_email_contact_to_vector_db() -> Chroma:
     email_contact_file = Path("../data/email_contact.json")
     with email_contact_file.open("r", encoding="utf-8") as f:
         email_contacts: EmailContactList = EmailContactList.model_validate(json.load(f))
-    
+
     documents: list[Document] = []
     for idx, email_contact in enumerate(email_contacts.root):
         content = f"email: {email_contact.email}, name:{email_contact.name}"
@@ -97,5 +102,5 @@ def store_email_contact_to_vector_db() -> Chroma:
 
 
 if __name__ == "__main__":
-    #store_email_contact_to_vector_db()
+    # store_email_contact_to_vector_db()
     store_web_user_manual_to_vector_db()

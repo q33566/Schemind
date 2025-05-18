@@ -11,6 +11,8 @@ from pathlib import Path
 from langchain.tools import tool
 
 load_dotenv()
+
+
 def is_in_extenstions(path: Path, extensions: list = None) -> bool:
     """
     Check if the path extension is in the list of extensions.
@@ -32,7 +34,6 @@ def is_in_extenstions(path: Path, extensions: list = None) -> bool:
     return path.suffix in extensions
 
 
-
 @tool
 def send_email_with_attachment(recipient: str, file_path: str) -> None:
     """
@@ -46,19 +47,21 @@ def send_email_with_attachment(recipient: str, file_path: str) -> None:
     APP_PASSWORD = os.getenv("GOOGLE_APP_PASSWORD")
     try:
         # Create the email content
-        msg = MIMEMultipart('mixed')
-        msg['Subject'] = 'Test Email'
-        msg['From'] = FROM_EMAIL
-        msg['To'] = recipient
+        msg = MIMEMultipart("mixed")
+        msg["Subject"] = "Test Email"
+        msg["From"] = FROM_EMAIL
+        msg["To"] = recipient
 
         # Attach the file
-        with open(file_path, 'rb') as f:
+        with open(file_path, "rb") as f:
             part = MIMEApplication(f.read())
-            part.add_header('Content-Disposition', 'attachment', filename=Path(file_path).name)
+            part.add_header(
+                "Content-Disposition", "attachment", filename=Path(file_path).name
+            )
             msg.attach(part)
 
         # Connect to Gmail SMTP server and send the email
-        smtp = smtplib.SMTP('smtp.gmail.com', 587)
+        smtp = smtplib.SMTP("smtp.gmail.com", 587)
         smtp.ehlo()
         smtp.starttls()
         smtp.login(FROM_EMAIL, APP_PASSWORD)

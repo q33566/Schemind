@@ -17,4 +17,6 @@ dev.ipynb
 chroma/
 data/
 experiment_files_db/
+test.py
+*.pdf
 *.txt
