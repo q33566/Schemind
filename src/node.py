@@ -6,6 +6,7 @@ import time
 import base64
 import json
 import requests
+from pydantic import BaseModel
 from mimetypes import guess_type
 from typing import List, Dict, Tuple
 from llm_services import (
@@ -128,7 +129,7 @@ class Synchronizer(BaseService):
         )
 
         # extract files thar are no longer exist
-        outdated_files: List[str, FileSnapshot] = {
+        outdated_files: Dict[str, FileSnapshot] = {
             file.file_name: file
             for file in previous_file_snapshots.values()
             if not Path(file.file_name).exists()
@@ -160,7 +161,7 @@ class Synchronizer(BaseService):
         need_update_files: List[FileSnapshot] = list(modified_files.values()) + list(
             new_files.values()
         )
-        need_delete_files: List[FileSnapshot] = list(outdated_files)
+        need_delete_files: List[FileSnapshot] = list(outdated_files.values())
 
         return need_update_files, need_delete_files
 
@@ -230,7 +231,7 @@ class BrowserUse(BaseService):
             planner_llm=planner_llm,
         )
 
-    def _download(self, url: str):
+    def _download(self, url: str) -> str:
         file_name = Path(url).name
         file_path = Path("../data/mock_filesystem") / file_name
         response = requests.get(url)
@@ -240,6 +241,7 @@ class BrowserUse(BaseService):
             print(f"檔案已成功下載為 {file_path}")
         else:
             print(f"下載失敗，HTTP 狀態碼：{response.status_code}")
+        return str(file_name)
     
     async def run(self, state: State) -> None:
         user_query = state["user_query"]
@@ -247,10 +249,11 @@ class BrowserUse(BaseService):
             user_query=user_query, state=state
         )
         if result.download_file_url:
-            self._download(result.download_file_url)
+            file_name: str = self._download(result.download_file_url)
         return {
             "browser_use_is_done": is_successful,
             "extracted_content": result.extracted_content,
+            "file_name": file_name if file_name else None
         }
 
 
@@ -308,9 +311,15 @@ class UserActionRecorder(BaseService):
 
     def run(self, state: State) -> None:
         run_recorder(state=state)
+        
 
 
 class MessageSender(BaseService):
+    class ContactEntry(BaseModel):
+        name: str
+        description: str
+        email: str
+        
     def __init__(
         self,
         vectorstore: Chroma,
@@ -326,6 +335,21 @@ class MessageSender(BaseService):
         self._retriever: VectorStoreRetriever = vectorstore.as_retriever(
             search_type=serch_type, search_kwargs={"k": k}
         )
+        
+    def update_contact(self, contact_entries: list[ContactEntry]):
+        all_ids = self._vectorstore.get()['ids']
+        if all_ids:
+            self._vectorstore.delete(ids=all_ids)
+            
+        docs = []
+        for contact in contact_entries:
+            content = f"名稱: {contact.name} 描述: {contact.description} email: {contact.email}"
+            docs.append(Document(page_content=content))
+        print(f"📄 將新增 {len(docs)} 筆聯絡人：")
+        for d in docs:
+            print(f" - {d.page_content}")
+        self._vectorstore.add_documents(docs)
+
 
     def run(self, state: State) -> None:
         user_query: str = state["user_query"]
@@ -333,8 +357,12 @@ class MessageSender(BaseService):
         args: dict = self._llm_service.run(
             user_query=user_query, file_path=file_path, retriever=self._retriever
         )
+        file_name: str = Path(args["file_path"]).name
+        recipient: str = args["recipient"]
         send_email_with_attachment.invoke(args)
-
+        return{
+            "extracted_content": f"已將檔案{file_name}寄送給{recipient}"
+        }
 
 class ActionReasoner(BaseService):
     def __init__(self, llm: BaseChatModel = None, vectorstore: Chroma = None):

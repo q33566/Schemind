@@ -87,6 +87,9 @@ graph_builder.add_edge(recorder.name, action_reasoner.name)
 graph_builder.add_edge(action_reasoner.name, END)
 graph = graph_builder.compile()
 
+async def run_agent(user_query: str) -> dict:
+    result = await graph.ainvoke({"user_query": user_query})
+    return result
 
 async def main():
     user_query = input("請輸入指令: ")

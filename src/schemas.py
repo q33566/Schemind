@@ -18,6 +18,7 @@ class State(TypedDict):
     browser_use_is_done: bool
     extracted_content: str
     summarizer_answer: str
+    file_name: str
 
 
 class FileSnapshot(BaseModel):
