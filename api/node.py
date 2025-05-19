@@ -248,6 +248,7 @@ class BrowserUse(BaseService):
         result, is_successful = await self._browser_use_llm_service.run(
             user_query=user_query, state=state
         )
+        file_name = None
         if result.download_file_url:
             file_name: str = self._download(result.download_file_url)
         return {
