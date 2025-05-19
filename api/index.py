@@ -7,12 +7,10 @@ from fastapi.staticfiles import StaticFiles
 from schemas import State
 from main import run_agent, messenge_sender
 from pathlib import Path
-import re
-
+import traceback
 app = FastAPI()
 static_dir = Path(__file__).resolve().parent.parent / "data" / "mock_filesystem"
-print("📁 掛載資料夾：", static_dir)
-print("🧪 PDF 是否存在：", (static_dir / "Unix_account_en_109.pdf").exists())
+print("mount dir：", static_dir)
 app.mount("/files", StaticFiles(directory=static_dir), name="files")
 
 app.add_middleware(
@@ -54,6 +52,7 @@ async def update_contacts(request: ContactUpdateRequest):
         messenge_sender.update_contact(request.contacts)
         return {"status": "success", "message": "聯絡人已更新"}
     except Exception as e:
+        print(str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/contacts", response_model=list[ContactEntry])
@@ -65,6 +64,7 @@ async def list_contacts():
         contacts = [m for m in metadatas if isinstance(m, dict)]
         return contacts
     except Exception as e:
+        print(str(e))
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.delete("/contacts/{name}")
@@ -73,6 +73,7 @@ async def delete_contact(name: str):
         messenge_sender.delete_contact_by_name(name)
         return {"status": "success", "message": f"聯絡人 {name} 已刪除（若存在）"}
     except Exception as e:
+        print(str(e))
         raise HTTPException(status_code=500, detail=str(e))
     
 class ProactorServer(Server):
