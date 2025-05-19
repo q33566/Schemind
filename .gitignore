@@ -18,9 +18,8 @@ data/
 experiment_files_db/
 test.py
 *.pdf
-*.json
 test.ipynb
-
+agent_result.json
 # next.js
 # dependencies
 /node_modules
