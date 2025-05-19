@@ -340,17 +340,38 @@ class MessageSender(BaseService):
         all_ids = self._vectorstore.get()['ids']
         if all_ids:
             self._vectorstore.delete(ids=all_ids)
-            
+            print(f"🧹 已清除舊有 {len(all_ids)} 筆聯絡人")
+
         docs = []
         for contact in contact_entries:
-            content = f"名稱: {contact.name} 描述: {contact.description} email: {contact.email}"
-            docs.append(Document(page_content=content))
-        print(f"📄 將新增 {len(docs)} 筆聯絡人：")
-        for d in docs:
-            print(f" - {d.page_content}")
+            metadata = {
+                "name": contact.name,
+                "description": contact.description,
+                "email": contact.email,
+            }
+            content = f"聯絡人資料：{contact.name}"  # 可選，主要內容可簡寫
+            docs.append(Document(page_content=content, metadata=metadata))
+
+        print(f"📄 將新增 {len(docs)} 筆聯絡人（含 metadata）")
         self._vectorstore.add_documents(docs)
 
+    def delete_contact_by_name(self, name: str):
+        docs = self._vectorstore.get(include=["metadatas"])
+        ids = docs.get("ids", [])
+        metadatas = docs.get("metadatas", [])
 
+        to_delete = [
+            doc_id for doc_id, meta in zip(ids, metadatas)
+            if meta and meta.get("name") == name
+        ]
+
+        if to_delete:
+            self._vectorstore.delete(ids=to_delete)
+            print(f"✅ 已刪除聯絡人：{name}")
+        else:
+            print(f"⚠️ 找不到聯絡人：{name}")
+
+            
     def run(self, state: State) -> None:
         user_query: str = state["user_query"]
         file_path: str = state["retrieved_file_path"]
@@ -462,7 +483,8 @@ class ActionReasoner(BaseService):
         ) as f:
             json.dump(latest_recording_json, f, ensure_ascii=False, indent=4)
 
-
+        return {"extracted_content": "學習完成"}
+    
 class Summarizer(BaseService):
     def __init__(self, llm: BaseChatModel = None):
         super().__init__(name=self.__class__.__name__)

@@ -56,34 +56,23 @@ async def update_contacts(request: ContactUpdateRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/contacts")
+@app.get("/contacts", response_model=list[ContactEntry])
 async def list_contacts():
     try:
-        docs = messenge_sender._vectorstore.get()
-
-        print("📦 vectorstore.get() 結果：", docs)  # DEBUG: 印出完整物件
-
-        raw_docs = docs.get("documents", [])
-        print("📄 取得 documents：", raw_docs)  # DEBUG: 印出文件清單
-
-        contacts = []
-        for doc in raw_docs:
-            print("🔍 處理 document：", doc)  # DEBUG: 每一筆文檔
-            match = re.match(r"名稱: (.*?) 描述: (.*?) email: (.*)", doc)
-            if match:
-                contacts.append({
-                    "name": match.group(1),
-                    "description": match.group(2),
-                    "email": match.group(3)
-                })
-            else:
-                print("❌ 無法解析格式：", doc)
-
-        print("✅ 回傳 contacts：", contacts)
+        docs = messenge_sender._vectorstore.get(include=["metadatas"])
+        metadatas = docs.get("metadatas", [])
+        # 過濾出不是 None 且是 dict 的項目
+        contacts = [m for m in metadatas if isinstance(m, dict)]
         return contacts
-
     except Exception as e:
-        print("❗ 例外錯誤：", e)
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.delete("/contacts/{name}")
+async def delete_contact(name: str):
+    try:
+        messenge_sender.delete_contact_by_name(name)
+        return {"status": "success", "message": f"聯絡人 {name} 已刪除（若存在）"}
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
 class ProactorServer(Server):
