@@ -29,6 +29,7 @@ from abc import ABC, abstractmethod
 from schemas import State
 from utils import send_email_with_attachment
 
+BASE_DIR = Path(__file__).resolve().parent.parent 
 
 class BaseService(ABC):
     def __init__(self, name: str = None):
@@ -233,7 +234,8 @@ class BrowserUse(BaseService):
 
     def _download(self, url: str) -> str:
         file_name = Path(url).name
-        file_path = Path("../data/mock_filesystem") / file_name
+        file_path = BASE_DIR / Path("data/mock_filesystem") / file_name
+        file_path.parent.mkdir(parents=True, exist_ok=True)
         response = requests.get(url)
         if response.status_code == 200:
             with open(file_path, 'wb') as f:
@@ -248,6 +250,7 @@ class BrowserUse(BaseService):
         result, is_successful = await self._browser_use_llm_service.run(
             user_query=user_query, state=state
         )
+        file_name = None
         if result.download_file_url:
             file_name: str = self._download(result.download_file_url)
         return {

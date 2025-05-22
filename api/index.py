@@ -43,6 +43,7 @@ async def run_query(request: QueryRequest):
         return {"output": result}
     except Exception as e:
         print(str(e))
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
     
 
@@ -53,6 +54,7 @@ async def update_contacts(request: ContactUpdateRequest):
         return {"status": "success", "message": "聯絡人已更新"}
     except Exception as e:
         print(str(e))
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/contacts", response_model=list[ContactEntry])
@@ -65,6 +67,7 @@ async def list_contacts():
         return contacts
     except Exception as e:
         print(str(e))
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.delete("/contacts/{name}")
@@ -74,6 +77,7 @@ async def delete_contact(name: str):
         return {"status": "success", "message": f"聯絡人 {name} 已刪除（若存在）"}
     except Exception as e:
         print(str(e))
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
     
 class ProactorServer(Server):
