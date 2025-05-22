@@ -18,9 +18,7 @@ from schemas import FileDescription
 from abc import ABC, abstractmethod
 from langchain_chroma import Chroma
 from typing import Optional
-from browser_use import Agent
-from browser_use.browser.browser import Browser, BrowserConfig
-from browser_use.browser.context import BrowserContextConfig
+from browser_use import Agent, Controller, AgentHistoryList
 
 
 class BaseLLMService(ABC):
@@ -39,7 +37,6 @@ class BaseLLMService(ABC):
     @abstractmethod
     def run(self, *args, **kwargs):
         pass
-
 
 class FileDescriptor(BaseLLMService):
     class OutputFormat(BaseModel):
@@ -91,7 +88,6 @@ class FileDescriptor(BaseLLMService):
         )
         return result.content
 
-
 class FileRetrieverLLMService(BaseLLMService):
     class OutputFormat(BaseModel):
         file_path: str = Field(
@@ -123,18 +119,15 @@ class FileRetrieverLLMService(BaseLLMService):
         result: FileRetrieverLLMService.OutputFormat = chain.invoke(user_query)
         return result.file_path
 
-
 class BrowserUseLLMService(BaseLLMService):
+    class Result(BaseModel):
+        download_file_url: str
+        extracted_content: str
+    
     def __init__(self, llm: BaseChatModel, planner_llm: Optional[BaseChatModel] = None):
         super().__init__(llm, name=self.__class__.__name__)
         self._planner_llm: Optional[BaseChatModel] = planner_llm
-        self._browser = Browser(
-            config=BrowserConfig(
-                new_context_config=BrowserContextConfig(
-                    save_downloads_path=r"..\data\mock_filesystem"
-                ),
-            )
-        )
+        self._controler = Controller(output_model=self.Result)
 
     async def run(self, state, user_query: str):
         """Run the browser agent with the given task."""
@@ -147,12 +140,13 @@ class BrowserUseLLMService(BaseLLMService):
             max_actions_per_step=8,
             use_vision_for_planner=False,
             save_conversation_path=r"..\data\logs\browser_use_conversation",
-            browser=self._browser,
-            extend_system_message=state["web_manual"],
+            extend_system_message=f"If the following information is useful then you can reference it, if not, just ignore it. {state['web_manual']}",
+            controller=self._controler,
         )
-        history = await agent.run(max_steps=25)
-        return history
-
+        history_list: AgentHistoryList = await agent.run(max_steps=25)
+        is_successful: bool = history_list.is_successful()
+        result = self.Result.model_validate_json(history_list.final_result())
+        return result, is_successful
 
 class DispatcherLLMService(BaseLLMService):
     class OutputFormat(BaseModel):
@@ -190,7 +184,6 @@ class DispatcherLLMService(BaseLLMService):
         elif result.is_web_record_task:
             return "recorder"
         return "unknown"
-
 
 class WebGuiderLLMService(BaseLLMService):
     class OutputFormat(BaseModel):
@@ -240,7 +233,6 @@ class MessageSenderLLMService(BaseLLMService):
         args = result.tool_calls[0]["args"]
         return args
 
-
 class ActionReasoningLLMService(BaseLLMService):
     class OutputFormat(BaseModel):
         reasoning: str = Field(
@@ -267,7 +259,6 @@ class ActionReasoningLLMService(BaseLLMService):
             }
         )
         return result.reasoning
-
 
 class SummarizerLLMService(BaseLLMService):
     def __init__(self, llm: BaseChatModel):

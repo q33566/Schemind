@@ -5,6 +5,8 @@ from tqdm import tqdm
 import time
 import base64
 import json
+import requests
+from pydantic import BaseModel
 from mimetypes import guess_type
 from typing import List, Dict, Tuple
 from llm_services import (
@@ -27,6 +29,7 @@ from abc import ABC, abstractmethod
 from schemas import State
 from utils import send_email_with_attachment
 
+BASE_DIR = Path(__file__).resolve().parent.parent 
 
 class BaseService(ABC):
     def __init__(self, name: str = None):
@@ -127,7 +130,7 @@ class Synchronizer(BaseService):
         )
 
         # extract files thar are no longer exist
-        outdated_files: List[str, FileSnapshot] = {
+        outdated_files: Dict[str, FileSnapshot] = {
             file.file_name: file
             for file in previous_file_snapshots.values()
             if not Path(file.file_name).exists()
@@ -159,7 +162,7 @@ class Synchronizer(BaseService):
         need_update_files: List[FileSnapshot] = list(modified_files.values()) + list(
             new_files.values()
         )
-        need_delete_files: List[FileSnapshot] = list(outdated_files)
+        need_delete_files: List[FileSnapshot] = list(outdated_files.values())
 
         return need_update_files, need_delete_files
 
@@ -221,6 +224,7 @@ class FileRetriever(BaseService):
 
 
 class BrowserUse(BaseService):
+    
     def __init__(self, llm: BaseChatModel, planner_llm: BaseChatModel = None):
         super().__init__(name=self.__class__.__name__)
         self._browser_use_llm_service: BrowserUseLLMService = BrowserUseLLMService(
@@ -228,14 +232,31 @@ class BrowserUse(BaseService):
             planner_llm=planner_llm,
         )
 
+    def _download(self, url: str) -> str:
+        file_name = Path(url).name
+        file_path = BASE_DIR / Path("data/mock_filesystem") / file_name
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        response = requests.get(url)
+        if response.status_code == 200:
+            with open(file_path, 'wb') as f:
+                f.write(response.content)
+            print(f"檔案已成功下載為 {file_path}")
+        else:
+            print(f"下載失敗，HTTP 狀態碼：{response.status_code}")
+        return str(file_name)
+    
     async def run(self, state: State) -> None:
         user_query = state["user_query"]
-        history = await self._browser_use_llm_service.run(
+        result, is_successful = await self._browser_use_llm_service.run(
             user_query=user_query, state=state
         )
+        file_name = None
+        if result.download_file_url:
+            file_name: str = self._download(result.download_file_url)
         return {
-            "browser_use_is_done": history.is_successful(),
-            "extracted_content": history.extracted_content(),
+            "browser_use_is_done": is_successful,
+            "extracted_content": result.extracted_content,
+            "file_name": file_name if file_name else None
         }
 
 
@@ -293,9 +314,15 @@ class UserActionRecorder(BaseService):
 
     def run(self, state: State) -> None:
         run_recorder(state=state)
+        
 
 
 class MessageSender(BaseService):
+    class ContactEntry(BaseModel):
+        name: str
+        description: str
+        email: str
+        
     def __init__(
         self,
         vectorstore: Chroma,
@@ -311,15 +338,55 @@ class MessageSender(BaseService):
         self._retriever: VectorStoreRetriever = vectorstore.as_retriever(
             search_type=serch_type, search_kwargs={"k": k}
         )
+        
+    def update_contact(self, contact_entries: list[ContactEntry]):
+        all_ids = self._vectorstore.get()['ids']
+        if all_ids:
+            self._vectorstore.delete(ids=all_ids)
+            print(f"🧹 已清除舊有 {len(all_ids)} 筆聯絡人")
 
+        docs = []
+        for contact in contact_entries:
+            metadata = {
+                "name": contact.name,
+                "description": contact.description,
+                "email": contact.email,
+            }
+            content = f"聯絡人資料：{contact.name}"  # 可選，主要內容可簡寫
+            docs.append(Document(page_content=content, metadata=metadata))
+
+        print(f"📄 將新增 {len(docs)} 筆聯絡人（含 metadata）")
+        self._vectorstore.add_documents(docs)
+
+    def delete_contact_by_name(self, name: str):
+        docs = self._vectorstore.get(include=["metadatas"])
+        ids = docs.get("ids", [])
+        metadatas = docs.get("metadatas", [])
+
+        to_delete = [
+            doc_id for doc_id, meta in zip(ids, metadatas)
+            if meta and meta.get("name") == name
+        ]
+
+        if to_delete:
+            self._vectorstore.delete(ids=to_delete)
+            print(f"✅ 已刪除聯絡人：{name}")
+        else:
+            print(f"⚠️ 找不到聯絡人：{name}")
+
+            
     def run(self, state: State) -> None:
         user_query: str = state["user_query"]
         file_path: str = state["retrieved_file_path"]
         args: dict = self._llm_service.run(
             user_query=user_query, file_path=file_path, retriever=self._retriever
         )
+        file_name: str = Path(args["file_path"]).name
+        recipient: str = args["recipient"]
         send_email_with_attachment.invoke(args)
-
+        return{
+            "extracted_content": f"已將檔案{file_name}寄送給{recipient}"
+        }
 
 class ActionReasoner(BaseService):
     def __init__(self, llm: BaseChatModel = None, vectorstore: Chroma = None):
@@ -419,7 +486,8 @@ class ActionReasoner(BaseService):
         ) as f:
             json.dump(latest_recording_json, f, ensure_ascii=False, indent=4)
 
-
+        return {"extracted_content": "學習完成"}
+    
 class Summarizer(BaseService):
     def __init__(self, llm: BaseChatModel = None):
         super().__init__(name=self.__class__.__name__)

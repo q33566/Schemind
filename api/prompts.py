@@ -132,7 +132,7 @@ class ActionReasoningPrompt:
         You are an expert specializing in analyzing user behavior during web interactions.
 
         You will be provided with a "Task Goal" and all the web interaction steps required to complete this goal.  
-        These steps will be sent to you sequentially for analysis, one at a time, including the "Action Description" and two webpage screenshots (before and after the action).
+        These steps willF be sent to you sequentially for analysis, one at a time, including the "Action Description" and two webpage screenshots (before and after the action).
 
         Your task is to infer and explain the **Reasoning and Intention behind each action**.
 
