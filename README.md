@@ -1,4 +1,4 @@
-# 🤖 Schemind: Human-AI Task Automation Project
+# 🤖 Schemind: Let AI Use Computer for You
 
 ## 🚀 Project Overview
 
